@@ -4,7 +4,7 @@ Authoritative specifications: [MASTER_PLAN](MASTER_PLAN.md), [FIELD_REQUIREMENTS
 
 ## Phase 0 — OS and diagnostics
 - [x] Define project architecture and acceptance gates.
-- [ ] Reproducible Raspberry Pi OS Lite 32-bit image and dependency baseline.
+- [ ] Compare Bookworm Lite vs Trixie Lite 32-bit on real Zero 2 W/OV5647, then pin the tested image and dependencies.
 - [ ] Python package skeleton, service units, installer stub and tests.
 - [ ] Detect Pi/sensor, capture modes, RTC, USB, codec capability.
 - [ ] Stable Unit/Box identity and typed configuration.
@@ -12,15 +12,15 @@ Authoritative specifications: [MASTER_PLAN](MASTER_PLAN.md), [FIELD_REQUIREMENTS
 ## Phase 1 — Recorder MVP
 - [ ] Prove bare hardware H.264 recording without MotionEye.
 - [ ] Detect/mount correct USB; hourly finalized segments.
-- [ ] Validate 800x600, 720p30 and 1080p30.
+- [ ] Validate 800x600, **1280x960@30**, 720p30 and 1080p30, including FOV/crop and TSP AI compatibility.
 - [ ] Watchdog checks frame progress and real recording bytes.
 - [ ] Persistent event journal and RTC time validation.
-- [ ] Test 24–48h including reboot, failed USB and power loss.
+- [ ] Test >48h including active/stalled frame detection, reboot, failed USB, power loss, FPS timestamp checks and disk corruption.
 
 ## Phase 2 — Image and live preview
 - [ ] Timestamp, TSP logo and Box ID in bottom-right overlay.
 - [ ] Verify TSP AI OCR with representative actual footage.
-- [ ] Shared low-resolution 1–5 FPS on-demand preview.
+- [ ] Shared low-resolution 1–5 FPS on-demand preview with bounded queues and guaranteed frame-buffer release.
 - [ ] Benchmark capture CPU/RAM/temperature and recording continuity.
 
 ## Phase 3 — Technician panel and storage
@@ -33,7 +33,7 @@ Authoritative specifications: [MASTER_PLAN](MASTER_PLAN.md), [FIELD_REQUIREMENTS
 
 ## Phase 4 — Field connectivity
 - [ ] Android Bluetooth PAN plus temporary Internet.
-- [ ] 15-minute per-boot Wi-Fi AP with unique credentials.
+- [ ] 15-minute per-boot Wi-Fi AP with unique credentials **plus service recovery after 15min without rebooting capture**.
 - [ ] Protected local access, pairing and disconnection recovery.
 
 ## Phase 5 — Installer and OTA
