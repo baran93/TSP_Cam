@@ -33,3 +33,25 @@ Events/logs are queued locally and synchronized when technician-phone Internet b
 ## 2026-10-08 - Pi Zero 2 W first
 
 The first production target is Raspberry Pi Zero 2 W. Resource usage and dependencies should be evaluated against this device, not a Pi 5 development machine.
+
+## 2026-10-08 - Autostart recording and evidence preservation
+
+On boot, recording must automatically begin to USB once a writable USB volume is present, even with no phone or browser connection. The camera also autostarts on later insertion. Never overwrite or automatically delete any recording. Full/missing USB causes a visible error, with no hidden microSD fallback.
+
+## 2026-10-08 - Keep existing 60-minute physical video workflow
+
+Existing TSP one-hour MP4 files remain the default. The office uses an MP4 repair tool when a file is interrupted by power loss. Do not silently switch production to shorter physical segments or raw H.264; test writer/container on real workflow. Top-of-hour vs 3600 seconds after start awaits confirmation.
+
+## 2026-10-08 - Explicit automatic/manual clock modes
+
+Default AUTO: restore time from RTC and start, synchronize with Internet via technician's Android Bluetooth connection when available, store corrected time to RTC. MANUAL: user can enter date/time; persist setting and prevent NTP/background overwrite. Panel compares camera time to phone time as warning; `Update Time` explicitly changes system clock and RTC and logs correction. Missing RTC communication is an honest alarm.
+
+## 2026-10-08 - One-button full safe shutdown
+
+Authenticated `Power Down` closes/flushes video and filesystems and initiates Raspberry Pi OS poweroff. Explain that power supply/battery may remain physically connected. Technician observes safe-halt indication before unplugging USB.
+
+## 2026-10-08 - Technician installation workflow
+
+Technician checks low-FPS framing preview, live file creation/growth, camera time and RTC status; does not need to start recording manually or play an unfinished MP4.
+
+Canonical behavior specification: [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md).
