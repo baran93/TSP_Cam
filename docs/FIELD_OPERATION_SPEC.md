@@ -13,7 +13,7 @@ A technician brings up a PiCam, positions it using a low-FPS preview, confirms c
 1. **Autostart**: on every Pi boot, after camera/RTC and actual recording drive mount have been checked, start continuous recording immediately if eligible USB media is present and writable. Do **not** wait for technician Bluetooth, internet, login, web UI, update check or preview.
 2. If USB is absent, not actually mounted, read-only, out of space or fails write-health checks, indicate WAITING_FOR_USB / RECORDING_ERROR; continue monitoring for a viable USB device and autostart on insertion without reboot. Never silently write to system microSD through an empty mountpoint.
 3. **Never overwrite any existing video** and never delete videos to free space. No circular/loop recording or silent cleanup. Use O_EXCL/unique atomically reserved paths, robust collision handling and a stable run/session ID as needed. Preserve files even when clock steps backwards or two restarts occur in same second. If storage fills, stop capture and signal an alarm.
-4. Physical video files are intended to be **one-hour files** as in the existing TSP MotionEye workflow. Default: 3600 seconds segment duration. Pending user confirmation whether rotations must align to top of hour or count 3600s after capture start; don't change the established filename pattern or split into shorter physical clips without explicit consent.
+4. Physical video files are intended to be **one-hour files** as in the existing TSP MotionEye workflow. Default: 3600 seconds segment duration. **Confirmed: rotate after 3600 seconds of elapsed capture time from the recording start, not at the top of the wall-clock hour.** A segment may end on the next suitable H.264 keyframe to preserve continuity; measure interval with a monotonic clock. Do not change the established filename pattern or split into shorter physical clips without explicit consent.
 5. Use a Windows/TSP-office-compatible MP4 output only after testing. On abrupt cutoff, an active MP4 may be unfinalized; office technicians currently use “MP4 Fix” to repair it. Preserve damaged originals and do **not** automatically delete or rename broken segments as if fixed. Prior closed segments must remain readable.
 6. File naming carries date/time at creation (equivalent to existing `%Y-%m-%d-%H-%M-%S` format), under per-unit/per-date folders. Ensure uniqueness even when RTC is manually moved backwards, corrected or unavailable.
 7. On active capture, the system must prove more than file presence: monitor actual encoded frame progression, file size/bytes changing (recognize buffering), recent write errors, mount identity and time of last successful segment close. Present active filename + `Recording / File created / Writing / Time` status. Files being written do not need to be viewable until finalized.
@@ -76,7 +76,7 @@ Minimal technician flow:
 - USB inserted after boot -> recording auto-starts without reboot, no writes to underlying OS mountpoint.
 - Full USB -> stops, warns, never deletes/overwrites.
 - Reboot + same timestamp/clock moved backward -> unique video filename, old file bytes unchanged.
-- Hourly physical MP4 split, repairs by actual office `MP4 Fix` on damaged file, playback by existing TSP AI/Windows process.
+- Hourly physical MP4 split at 3600 seconds elapsed from capture start (not top of hour); repairs by actual office `MP4 Fix` on damaged file, playback by existing TSP AI/Windows process.
 - AUTO with no phone: RTC startup recording; when PAN/internet returns NTP updates RTC and logs time change.
 - MANUAL persists reboot and resists NTP overwrite. Explicit Update time modifies RTC with logged source.
 - RTC absent/broken displays an honest fault and does not silently show a fake synchronized state.
@@ -85,4 +85,4 @@ Minimal technician flow:
 - Video progress reporting checks real frame/encoder and bytes, not file existence alone.
 
 ## Remaining user decision
-**Hourly file alignment**: file boundaries at top-of-hour (first partial file) or 60 minutes since recorder started (existing `movie_max_time 3600` behavior).
+**Resolved 2026-10-08:** 3600 seconds elapsed from recording start; no wall-clock hour alignment. Start at 14:17 -> rotate at approximately 15:17 (next keyframe), then approximately 16:17. A reboot or safe shutdown starts a new session/short final file as needed. Wall-clock corrections must not change the interval or cause filename collisions.
