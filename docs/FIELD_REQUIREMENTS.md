@@ -58,3 +58,26 @@ Status: initial product assumptions; hardware validation required.
 - If USB is missing, unmounted, read-only or full, show a prominent warning instead of a misleading hours estimate.
 - Display remaining hours for the selected storage target, and allow comparing profile estimates without changing active recording.
 - In the UI also show available disk space in GiB and the current active profile.
+
+## File browser and playback
+- Local technician panel must allow selecting a configured recording drive (default USB), browsing folders, sorting and searching filenames, filtering by date/time, and showing file size/duration where known.
+- Offer metadata and thumbnails on demand; preview and download existing clips without interfering with active recording.
+- Bluetooth transfer/playback of full bitrate videos is not guaranteed; use low-bandwidth thumbnails or short preview clips and optional local download. Never scan entire USB on each page load; use paginated browsing.
+- Prevent path traversal and limit reads to configured approved recording roots.
+
+## Compatibility stamp / OCR requirement
+- Existing MotionEye overlay format is an AI integration contract, not a cosmetic preference.
+- Reference frame supplied 2026-10-08: lower-left two-line date/time; lower-right TSP/site/camera identifier; white block/pixel-like glyphs with dark outline.
+- Preserve field text, typography, shadow/outline, margins and exact reference pixel coordinates **at 800x600**; verify with original full-resolution reference sample and OCR regression tests.
+- Provide matching scaled stamp geometry for 720p and 1080p, but verify OCR empirically rather than assuming scaling is compatible.
+- Candidate: Raspberry Pi's official Picamera2 `examples/timestamped_video.py` using `MappedArray` + `pre_callback` before H.264 encode; optimize via cached/pre-rendered glyph overlay to avoid full-frame transformations.
+- Avoid FFmpeg decode/drawtext/re-encode of all frames on Zero 2 W; expensive and may not sustain 1080p30.
+- Record UTC acquisition time in metadata and render the desired local date/time in the in-frame stamp; validate RTC corrections during capture.
+- Acceptance: compare MotionEye / TSP_Cam frames at 800x600 and run TSP AI OCR tests across timestamps, varying lighting and resolutions. Test sustained FPS with overlay enabled.
+
+## Direct USB write performance
+- Zero 2 W USB 2.0 OTG should have ample bandwidth for 3–10 Mb/s H.264 (~0.375–1.25 MB/s), but sustained performance is conditional on actual drive, OTG adapter, mount configuration and stable power.
+- Capture directly to mounted USB; do not stage full clips onto the SD card.
+- Validate real USB device identity, sustained sequential write performance, storage reliability and behavior on surprise power loss.
+- Separate high-priority recording writes from any panel preview, download or health scanning.
+- Verify read/write contention while technician browses existing recordings during capture.
