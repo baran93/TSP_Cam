@@ -81,3 +81,23 @@ Status: initial product assumptions; hardware validation required.
 - Validate real USB device identity, sustained sequential write performance, storage reliability and behavior on surprise power loss.
 - Separate high-priority recording writes from any panel preview, download or health scanning.
 - Verify read/write contention while technician browses existing recordings during capture.
+
+## 2026-10-08 hardware / operating system decisions
+- Initial OS candidate: Raspberry Pi OS Lite 32-bit Trixie on Pi Zero 2 W. Benchmark vs Lite 64-bit and freeze OS/kernel/camera dependency versions only after successful field validation.
+- Test initially with mains supply and USB; batteries later. Technician phone platform: Android.
+- Current fleet sensor: OV5647 (approximately 400 modules owned). Detect sensor model and advertised video modes dynamically through libcamera/rpicam.
+- Use capability-driven camera settings. Hide autofocus, manual motor focus, optical zoom, etc unless the sensor/actuator and its driver expose real compatible controls.
+- Future replacement camera modules must not require rewriting the recorder/UI.
+- Preview must share the same camera capture pipeline as the recorder (main + lores). Start at ~2 FPS, lores 320x180 for 16:9 / 320x240 for 4:3; stop preview automatically on inactivity. Benchmark hardware encoding plus stamp plus preview for missed frames.
+- Prefer exFAT for removable recording USB because Windows computers need to access recordings. Detect ext4, FAT32, exFAT, NTFS and report actual supported read/write capability, not blanket compatibility promises.
+- Provide a guarded Format USB action: exact removable device identity/capacity shown, double confirmation, prohibit boot/root device, stop recording and unmount safely, format to exFAT, validate and remount, log operator action and result.
+- Store format audit event persistently **off the formatted USB**, and export a copy to USB/TSP OS later. Never assume an hourly USB log alone can preserve a record of USB formatting.
+- On FAT32 alert about 4 GiB per-file limit, optionally suggest exFAT without auto-formatting.
+- Capture and persistent event recording must survive disconnects and power glitches where technically possible.
+
+## Further engineering validation
+- Prototype physical unit diagnostics: power undervoltage, USB disconnect/reconnect, real mountpoint verification, RTC validity, thermal and disk write errors.
+- Verify actual FOV/crop for OV5647 at every proposed mode; high resolution must not sacrifice junction coverage.
+- Test whether the encoder/overlaid timestamp can hold 1080p30 for 24–48h while USB is being browsed and low-fps preview is active.
+- Define a stable unit identifier distinct from current friendly box label; ensure configuration is backed up for reflashing.
+- For BT PAN on Android, test the concrete phone and OS version before treating the connection method as universal.
