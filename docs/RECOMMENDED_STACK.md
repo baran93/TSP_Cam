@@ -34,7 +34,7 @@ Status: **design decision + validation requirements; not implemented or benchmar
 1. OV5647 kernel modes include **1296x972 at ~46 FPS with binned full field-of-view**, and **1920x1080 at ~33 FPS centre-cropped**. 1280x960@30 is a strong 4:3 candidate; inspect actual sensor selection. **720p60 not supported as an assumption**: digital upscale/downscale does not create new sensor samples; offer FPS only if available and verified.
 2. Pi Zero 2 W official capability: hardware H.264 encode up to 1080p30 and USB 2.0 OTG; real 1080p30 plus overlay/preview needs benchmarking.
 3. Initial encoder bitrate preset **not lower than safe test results**; default 5 Mb/s for 1080p30 is *only an initial benchmark candidate*, and some high-motion patterns can stall too-low bitrates. Include dynamic complexity test and inspect encode progress. Consider 8–10Mb/s if needed for traffic details and robustness.
-4. Ordinary unfinalized MP4 is at risk if power is cut before close; **15-minute actual file segments with 60-minute logical grouping** is an alternative to test vs existing TSP hour-file office workflow; fragmented MP4 / MPEG-TS vs Pyav MP4 acceptance by TSP AI must be measured.
+4. Ordinary unfinalized MP4 is at risk if power is cut before close; **15-minute actual file segments with 60-minute logical grouping** were an exploratory recovery alternative, **not the approved production workflow**. Latest decision requires physical MP4 segments at full wall-clock hours (short first file); test crash recoverability and compatibility with the TSP MP4-repair workflow. Fragmented MP4 / MPEG-TS remain laboratory comparisons only, not an automatic switch.
 5. `Picamera2` package should be installed via apt (`python3-picamera2 --no-install-recommends`) to keep libcamera versions compatible; do not blindly mix pip and distro bindings.
 6. Overlay glyph cache can update only once a second, but must still be composited into each output frame; cannot assume free CPU processing.
 7. Recording and preview sharing a camera stream is the default design; a browser frame must be copied/released immediately and never held back for a slow Bluetooth connection.
@@ -58,7 +58,7 @@ All are diagnostic and should not erase or alter recordings.
 ## Benchmark matrix (baseline then extra capabilities)
 1. A/B test a freshly imaged **Bookworm Lite 32** and **Trixie Lite 32** using identical OV5647, USB and power. Record kernel/libcamera/Picamera2 versions, free RAM, capture success, CPU and temperature.
 2. Capture 1280x960@30 and 1920x1080@30 bare H264 + timestamps: compare real FOV from fixed tripod and sustained frame timing for 24–48 hours.
-3. Add PyavOutput and hourly I-frame switching; playback all segments with ffprobe and target office tools; assess shutdown/power-loss behavior.
+3. Add PyavOutput and I-frame switching as close as feasible to full wall-clock hours (including a short first file); playback all segments with ffprobe and target office tools; assess shutdown/power-loss behavior, DST and time corrections.
 4. Add timestamp/logo burn-in and measure CPU/stall/dropped frames. Test TSP OCR accuracy.
 5. Add lowres preview 1/2 FPS; open/close 100 times, induce slow readers and Bluetooth packet delay; verify main capture is unaffected.
 6. Simulate missing mountpoint, read-only/full USB, accidental USB unplug and sudden power-off (repeat), confirm device ID audit/gap logs survive where possible.
