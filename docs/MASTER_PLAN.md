@@ -9,7 +9,7 @@ Replace MotionEye on TSP PiCam (Raspberry Pi Zero 2 W) with a robust, low-overhe
 - OS: **Bookworm Lite 32-bit and Trixie Lite 32-bit** must be compared on the actual Zero 2 W/OV5647 before choosing/pinning. Upstream Trixie + Zero 2 W memory issue #1358 requires qualification. Confirm libcamera/Picamera2/H.264 encoder availability; 64-bit can be benchmarked later.
 - Python 3 via distro packages for Picamera2/libcamera; avoid conflicting pip-managed libcamera/Picamera2 packages. Lightweight stdlib/limited dependencies for control plane. systemd services.
 - The camera library owns sensor/capture in **one process**. Preview cannot start a second camera owner.
-- Actual profiles **discovered and validated**, not assumed: legacy 800x600, **1280x960@30 (4:3 full-FOV candidate)**, 1280x720@30, 1920x1080@30; optional 720p60 only if sensor mode / encoder capability demonstrated.
+- Actual profiles **discovered and validated**, not assumed: legacy 800x600, **1280x960@30 (4:3 full-FOV candidate)**, 1280x720@30, 1920x1080@30; do not advertise 720p60 unless a genuine matching sensor mode, actual capture fps and encoder pipeline are validated; OV5647 1296x972 is typically ~46fps, 1080p ~33fps.
 - The OV5647 **1920x1080 sensor mode is centre-cropped**, while 1296x972 can preserve full sensor field of view. Do not select 1080p by default before comparing traffic coverage, quality, OCR and sustained FPS against legacy 800x600/1280x960.
 
 ## Component model (minimal processes)
@@ -92,3 +92,7 @@ Battery telemetry / timed power / optional autofocus and optical zoom are modula
 ## Critical review
 
 Before implementation, review [TECHNICAL_RISK_AUDIT.md](TECHNICAL_RISK_AUDIT.md). It documents concrete upstream issues, the 1280x960 full-FOV candidate, OS qualification, preview buffer safety, non-journaled exFAT, file segmentation, AP recovery and acceptance tests. Risk findings override premature default selections above.
+
+## Technology reference
+
+See [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) for the researched production candidate: distro libcamera/V4L2 H.264, Picamera2 and PyavOutput/SplittableOutput, NetworkManager/BlueZ, bounded systemd monitoring, and rejected alternatives. These remain benchmark candidates until proven on a real OV5647 Zero 2 W.
