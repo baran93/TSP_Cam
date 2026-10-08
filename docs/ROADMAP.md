@@ -11,7 +11,7 @@ Authoritative specifications: [MASTER_PLAN](MASTER_PLAN.md), [FIELD_REQUIREMENTS
 
 ## Phase 1 — Recorder MVP
 - [ ] Prove bare hardware H.264 recording without MotionEye.
-- [ ] Auto-record at boot/USB insertion without phone or panel; 60-minute physical MP4 files (3600 seconds elapsed from start, not aligned to clock hours), compatible with office repair.
+- [ ] Auto-record at boot/USB insertion without phone or panel; physical MP4 files aligned to full local clock hours (short first file when started mid-hour), compatible with office repair; verify DST/time jumps and no-overwrite behavior.
 - [ ] Validate 800x600, **1280x960@30**, 720p30 and 1080p30, including FOV/crop and TSP AI compatibility; reject unverified 720p60 claims.
 - [ ] Watchdog checks frame progress and real recording bytes; panel shows active file creation/progression.
 - [ ] Persist AUTO/MANUAL time mode, RTC read/write and manual override; warn on phone/camera clock mismatch; record clock changes.
