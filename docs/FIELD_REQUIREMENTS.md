@@ -8,7 +8,7 @@ Status: initial product assumptions; hardware validation required.
 - Test profiles: 800x600@25/30, 1280x720@25/30, 1920x1080@25/30. Optionally test 720p60.
 - Target default: 1080p30 if 24-hour reliability, image quality and battery-life testing pass; otherwise 720p30.
 - Prefer hardware H.264 through rpicam/libcamera. Preview disabled except on demand.
-- 60-minute logical recording files by default; offer 15 and 30 minutes.
+- **Production standard: physical MP4 files align to full clock hours in the configured site timezone.** First file after mid-hour boot may be shorter; subsequent files normally cover one clock hour. This supersedes earlier elapsed-3600-second rotation proposals; do not substitute 15/30-minute clips in production without explicit future approval.
 - Prefer MP4 deliverables, but verify crash safety and segment integrity; raw H.264 + remux without re-encoding is an option. Use --inline with rpicam-vid --segment if that backend is selected.
 
 ## Storage
