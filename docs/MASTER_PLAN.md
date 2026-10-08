@@ -6,11 +6,11 @@ Replace MotionEye on TSP PiCam (Raspberry Pi Zero 2 W) with a robust, low-overhe
 
 ## Hardware and software baseline
 - Primary hardware Pi Zero 2 W, 512 MB RAM, OV5647 5 MP (large installed inventory); CSI ribbon, separate microSD boot, USB recording drive, existing RTC and mains power for pilot.
-- OS candidate Raspberry Pi OS Lite 32-bit Trixie; pin distro image, kernel, firmware and packages after qualification. Confirm libcamera/Picamera2/H.264 encoder availability on the chosen image. 64-bit is a benchmark alternate, not default.
+- OS: **Bookworm Lite 32-bit and Trixie Lite 32-bit** must be compared on the actual Zero 2 W/OV5647 before choosing/pinning. Upstream Trixie + Zero 2 W memory issue #1358 requires qualification. Confirm libcamera/Picamera2/H.264 encoder availability; 64-bit can be benchmarked later.
 - Python 3 via distro packages for Picamera2/libcamera; avoid conflicting pip-managed libcamera/Picamera2 packages. Lightweight stdlib/limited dependencies for control plane. systemd services.
 - The camera library owns sensor/capture in **one process**. Preview cannot start a second camera owner.
-- Actual profiles **discovered and validated**, not assumed: legacy 800x600, 1280x720@30, 1920x1080@30; optional 720p60 only if sensor mode / encoder capability demonstrated.
-- The OV5647 may crop differently in 16:9, so actual traffic coverage/FOV is tested against legacy 800x600.
+- Actual profiles **discovered and validated**, not assumed: legacy 800x600, **1280x960@30 (4:3 full-FOV candidate)**, 1280x720@30, 1920x1080@30; optional 720p60 only if sensor mode / encoder capability demonstrated.
+- The OV5647 **1920x1080 sensor mode is centre-cropped**, while 1296x972 can preserve full sensor field of view. Do not select 1080p by default before comparing traffic coverage, quality, OCR and sustained FPS against legacy 800x600/1280x960.
 
 ## Component model (minimal processes)
 1. **tspcam-capture**: single persistent camera owner: mode/camera discovery, H.264 hardware encoder, segmentation, burn-in overlay (if feasible), lores frames to preview subscribers only, monotonic record/liveness counters, safe stop.
@@ -29,10 +29,10 @@ Reduce daemon count if measurements show 512 MB RAM pressure; separation is logi
 - Record config version and provenance in audit log. Validate changes; apply to capture at controlled safe boundary with rollback. Never reset identity on normal software update.
 
 ## Video pipeline
-- Start by proving plain hardware H.264 encode (no overlay/preview) at 1080p30 to external USB for >24h.
+- Start by proving plain hardware H.264 encode (no overlay/preview) at 1280x960@30 and 1080p30 to external USB for >48h. Record FOV, actual timestamps/FPS, USB integrity and 512MB RAM load.
 - Build **in-frame overlay**: bottom right timestamp (OCR-recognizable), TSP logo and Box number, white on dark semi-transparent background. Overlay can render static elements once and update timestamp every second, but compositing may still cost per frame; benchmark on Pi Zero 2 W. Validate OCR across 800x600, 720p and 1080p with real AI; avoid moving stamp without OCR tests.
-- Initial preview: low-res single still/JPEG 320x180 for 16:9, 320x240 for 4:3; on-demand 1/2/5fps capped, maximum one active preview conversion pipeline, viewer timeout ~2 min and bounded CPU/RAM. Lower FPS independently of the main capture. Test shared lores vs still-snapshot alternatives.
-- Default segments: 60min, configurable 15/30/60. Never block recording during browser reads; close/flush final segment. On crash, avoid corrupting all previous segments. Choose raw .h264 temporary recordings vs fragmented/regular MP4 based on interruption resilience and Windows compatibility tests. Provide remux only if needed, preferably not during active capture.
+- Initial preview: low-res single still/JPEG 320x180 for 16:9, 320x240 for 4:3; on-demand 1/2/5fps capped, no unbounded queues, release camera requests promptly, drop stale frames, viewer timeout ~2min. Prioritize main encode and verify no capture loss. Test alternatives if MJPEG is too heavy on Zero 2 W.
+- Logical recordings: 60min by default, configurable 15/30/60. Evaluate Picamera2 SplittableOutput with PyavOutput for I-frame-safe segment switches (no camera restart); explicitly test power loss recovery, finalized MP4, fragmented MP4/TS alternatives and frame timestamps. If resilience needs shorter physical segments, expose logical 60min grouping in UI and validate the TSP office workflow before changing physical file expectations. Never block capture during browse/download.
 - Explicit missing USB policy (alert, retry) — no surprise write to boot SD. Mount by UUID and verify actual physical volume.
 
 ## Storage and technician file manager
@@ -43,7 +43,7 @@ Reduce daemon count if measurements show 512 MB RAM pressure; separation is logi
 - Display remaining recording hours by profile based on actual filesystem free bytes, actual profile bitrate and safety headroom, calibrate from observed segment sizes. Clearly label estimate.
 
 ## Time, logs and health
-- Boot system clock from verified RTC; synchronize using NTP through Android tether when available; update RTC and record time jumps. Recording should report TIME INVALID when RTC implausible (define explicit start/block policy before production).
+- Boot system clock from verified RTC; synchronize using NTP through Android tether when available; update RTC and record time jumps. Derive overlay timestamp from capture metadata/monotonic-to-UTC mapping (not time of callback execution); log DST/timezone. Recording should report TIME INVALID when RTC implausible (define explicit start/block policy before production).
 - Append compact, bounded crash-surviving events immediately on OS drive; rotate/export a consolidated per-day JSONL log to USB hourly and when reconnected. USB audit requires local surviving record.
 - Check not just systemd status: actual frame/encoded-byte counter, file growing, USB mounted/write health, zero byte recordings, RTC, CPU temperature, RAM, undervoltage indicators, USB disconnects. Retry capture with bounded backoff.
 - Recorder never waits for network, Bluetooth pairing, GitHub or TSP OS.
@@ -88,3 +88,7 @@ Battery telemetry / timed power / optional autofocus and optical zoom are modula
 - Safe recovery physical trigger for extending AP window if Bluetooth fails.
 - Update integrity/signing service and read-only release delivery architecture for private repo.
 - Objective acceptance metrics (max gap, frame loss, current draw) set after baseline hardware test.
+
+## Critical review
+
+Before implementation, review [TECHNICAL_RISK_AUDIT.md](TECHNICAL_RISK_AUDIT.md). It documents concrete upstream issues, the 1280x960 full-FOV candidate, OS qualification, preview buffer safety, non-journaled exFAT, file segmentation, AP recovery and acceptance tests. Risk findings override premature default selections above.
