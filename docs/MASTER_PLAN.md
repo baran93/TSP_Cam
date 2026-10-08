@@ -96,3 +96,13 @@ Before implementation, review [TECHNICAL_RISK_AUDIT.md](TECHNICAL_RISK_AUDIT.md)
 ## Technology reference
 
 See [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) for the researched production candidate: distro libcamera/V4L2 H.264, Picamera2 and PyavOutput/SplittableOutput, NetworkManager/BlueZ, bounded systemd monitoring, and rejected alternatives. These remain benchmark candidates until proven on a real OV5647 Zero 2 W.
+
+## Binding field operation requirements (2026-10-08)
+
+[FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) overrides earlier exploratory alternatives on these matters:
+- Begin recording automatically **on boot once usable USB is mounted**, or on later USB insertion; never depend on phone/panel.
+- Preserve **physical hourly MP4 files** compatible with the TSP office's repair workflow; do not deploy shorter physical clips or a different container without explicit agreement and field compatibility tests. The exact 60-min rotation alignment is awaiting confirmation.
+- **No overwrites, no circular deletion.** On USB full -> alarm and stop. Use unique collision-resistant filenames even after RTC changes and reboot.
+- Timestamp AUTO versus MANUAL mode is persisted. MANUAL must not be overwritten by background NTP; explicit set time updates system clock and hardware RTC. AUTO can use internet NTP over Android PAN and save to RTC, phone time comparison in authenticated panel only warns unless user confirms correction.
+- Technician checks low-FPS view, active filename and real recording progress, as well as RTC status/clock mismatch.
+- **Power Down powers off the complete Pi**, after recording close and buffered writes are flushed; do not imply it cuts external battery power.
