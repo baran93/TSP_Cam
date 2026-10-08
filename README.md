@@ -47,3 +47,11 @@ The recorder is deliberately independent from networking. Losing Bluetooth or In
 - `tspcam-health` — storage, camera, RTC, temperature and recording checks.
 
 See `docs/ARCHITECTURE.md` and `docs/ROADMAP.md`.
+
+## Project source of truth
+
+- [MASTER_PLAN](docs/MASTER_PLAN.md) — overall design, implementation order and acceptance gates.
+- [FIELD_REQUIREMENTS](docs/FIELD_REQUIREMENTS.md) — field device requirements.
+- [INSTALL_AND_UPDATES](docs/INSTALL_AND_UPDATES.md) — secure OTA design.
+
+Status: design only; no deployable installer or camera recorder has yet been implemented.
