@@ -48,3 +48,13 @@ Status: initial product assumptions; hardware validation required.
 3. Boot Wi-Fi AP, pair/connect Bluetooth, test phone tethering, verify Wi-Fi auto-off at 15 minutes.
 4. Physically remove USB, kill capture process, disconnect phone and cut power; verify recovery behavior and readable previous segments.
 5. Export hourly USB logs and replay offline events once connectivity returns.
+
+## Storage duration estimator (technician panel)
+- Read actual available free space using filesystem statistics (`statvfs` / `df`) on the configured mounted recording volume, not the nominal USB size.
+- Display estimated available recording hours beside every offered recording profile (800x600, 720p, 1080p) and refresh when USB or profile/settings change.
+- Use the bitrate associated with each profile, **not resolution alone**; H.264 file size depends on bitrate, FPS, scene motion and encoder settings.
+- Formula: `hours = available_bytes * 8 / (bitrate_bits_per_sec * 3600)`, adjusted for container overhead and a configurable storage safety reserve.
+- Label values as **estimates**, not guarantees. Prefer calibration using observed recent segment sizes and use the lower (more conservative) prediction when actual bitrate differs from nominal.
+- If USB is missing, unmounted, read-only or full, show a prominent warning instead of a misleading hours estimate.
+- Display remaining hours for the selected storage target, and allow comparing profile estimates without changing active recording.
+- In the UI also show available disk space in GiB and the current active profile.
