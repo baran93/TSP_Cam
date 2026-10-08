@@ -28,7 +28,7 @@ This audit checks design assumptions against official Raspberry Pi/BlueZ/Microso
 - **Do not default to 1080p until field-of-view / sustained benchmarks pass.** Evaluate 1280×960@30 first for 4:3 traffic survey coverage.
 - **Do not require Trixie from day one.** Trixie and Bookworm are pilot candidates; select and pin based on same unit tests.
 - **Prefer in-process Picamera2 H264 + SplittableOutput for overlay/preview if performant.** Keep bare `rpicam-vid` as diagnostic baseline / fallback.
-- **Keep final hourly filenames but choose file format and shorter resilient internal segments only after power-off test.** If power-safe segments cannot be presented as one hour without risky on-device remuxing, show a logical hourly group in UI and coordinate office workflow change with TSP.
+- **Approved operation: physically split MP4 files on full local clock-hour boundaries, with a shorter first file.** Earlier proposals to use shorter resilient internal segments or logical hourly groups remain unapproved research alternatives, requiring explicit operator decision; preserve files for TSP MP4-fix repair and test sudden power loss.
 - **Hardware recovery AP after the initial 15 min is a real requirement** if the Bluetooth link is considered primary.
 - **Track actual capture gaps**, with event timestamp accuracy and test fixture playback, not solely 'recording' green state.
 - **Maintain production write targets outside the application versions** and avoid blindly mounting arbitrary USB as official recordings drive.
