@@ -58,3 +58,4 @@ Status: design only; no deployable installer or camera recorder has yet been imp
 
 - [TECHNICAL_RISK_AUDIT](docs/TECHNICAL_RISK_AUDIT.md) — known design risks, corrected assumptions, and preproduction failure tests.
 - [RECOMMENDED_STACK](docs/RECOMMENDED_STACK.md) — researched OS, camera drivers, encoding and reliability defaults.
+- [FIELD_OPERATION_SPEC](docs/FIELD_OPERATION_SPEC.md) — confirmed boot recording, USB retention, time-setting modes and shutdown behavior.
