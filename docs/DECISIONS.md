@@ -40,7 +40,7 @@ On boot, recording must automatically begin to USB once a writable USB volume is
 
 ## 2026-10-08 - Keep existing 60-minute physical video workflow
 
-Existing TSP one-hour MP4 files remain the default. The office uses an MP4 repair tool when a file is interrupted by power loss. Do not silently switch production to shorter physical segments or raw H.264; test writer/container on real workflow. **Confirmed: files rotate every 3600 seconds elapsed from recording start (not at calendar hour boundaries).**
+Existing TSP one-hour MP4 files remain the default. The office uses an MP4 repair tool when a file is interrupted by power loss. Do not silently switch production to shorter physical segments or raw H.264; test writer/container on real workflow. **Superseded on 2026-10-08:** the earlier elapsed-3600-second rule was replaced by full wall-clock-hour boundaries. See newest decision below.
 
 ## 2026-10-08 - Explicit automatic/manual clock modes
 
@@ -57,6 +57,10 @@ Technician checks low-FPS framing preview, live file creation/growth, camera tim
 Canonical behavior specification: [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md).
 
 
-## 2026-10-08 - Recording segment clock is elapsed 3600 seconds
+## 2026-10-08 - Superseded: recording segment clock is elapsed 3600 seconds
 
-**Confirmed by operator:** each normal MP4 recording segment targets 3600 seconds measured from the moment capture starts, matching previous MotionEye `movie_max_time 3600` behavior. Example: recording starts 14:17 -> next segment starts approximately 15:17 (at the next safe video keyframe), not at 15:00. Each subsequent file targets the next 3600 seconds. Use a monotonic elapsed timer: correcting RTC/system wall time must not make a segment shorter, longer, or overwrite another file. Restart/power loss starts a new 3600-second interval with a unique filename. A deliberate Power Down can leave the final segment shorter. Preserve hourly MP4 office workflow; no 5/15-minute physical segmentation without further approval.
+**Historical decision, superseded later on 2026-10-08.** Previously planned 3600 seconds from recording start. Do not implement this rule; follow the latest wall-clock-aligned decision below.
+
+## 2026-10-08 - FINAL: segment video on full clock hours
+
+**Latest explicit operator decision supersedes the elapsed-3600-second rule above.** Rotate physical MP4 recordings at each full **wall-clock hour** in the camera's configured local timezone. For example, start recording at 14:17 -> first file ends at ~15:00, then 15:00–16:00, 16:00–17:00. The first and shutdown/interrupted files may be shorter. Continue using MP4 and preserve TSP office compatibility. Switch as close as safely possible to hour boundary, at a valid encoder keyframe, without stopping camera capture. Never overwrite or delete older recordings. For clock adjustments, ambiguous DST hours and filename collisions, make uniquely named new segments and log boundaries/time corrections; do not silently extend/overwrite a file. See [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md).
