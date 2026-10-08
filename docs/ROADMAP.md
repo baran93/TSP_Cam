@@ -12,7 +12,7 @@ Authoritative specifications: [MASTER_PLAN](MASTER_PLAN.md), [FIELD_REQUIREMENTS
 ## Phase 1 — Recorder MVP
 - [ ] Prove bare hardware H.264 recording without MotionEye.
 - [ ] Detect/mount correct USB; hourly finalized segments.
-- [ ] Validate 800x600, **1280x960@30**, 720p30 and 1080p30, including FOV/crop and TSP AI compatibility.
+- [ ] Validate 800x600, **1280x960@30**, 720p30 and 1080p30, including FOV/crop and TSP AI compatibility; reject unverified 720p60 claims.
 - [ ] Watchdog checks frame progress and real recording bytes.
 - [ ] Persistent event journal and RTC time validation.
 - [ ] Test >48h including active/stalled frame detection, reboot, failed USB, power loss, FPS timestamp checks and disk corruption.
@@ -52,3 +52,5 @@ Authoritative specifications: [MASTER_PLAN](MASTER_PLAN.md), [FIELD_REQUIREMENTS
 - Battery telemetry/hot swap and timed power.
 - Autofocus/zoom adapter support for future sensor modules.
 - AI inference on-device or motion detection (not part of base recorder).
+
+See [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) before choosing build dependencies.
