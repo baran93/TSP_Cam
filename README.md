@@ -55,3 +55,5 @@ See `docs/ARCHITECTURE.md` and `docs/ROADMAP.md`.
 - [INSTALL_AND_UPDATES](docs/INSTALL_AND_UPDATES.md) — secure OTA design.
 
 Status: design only; no deployable installer or camera recorder has yet been implemented.
+
+- [TECHNICAL_RISK_AUDIT](docs/TECHNICAL_RISK_AUDIT.md) — known design risks, corrected assumptions, and preproduction failure tests.
