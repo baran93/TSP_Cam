@@ -1,79 +1,54 @@
-# TSP_Cam Roadmap
+# TSP_Cam delivery roadmap
 
-## Phase 0 - Foundation
+Authoritative specifications: [MASTER_PLAN](MASTER_PLAN.md), [FIELD_REQUIREMENTS](FIELD_REQUIREMENTS.md), [INSTALL_AND_UPDATES](INSTALL_AND_UPDATES.md).
 
-- [x] Create repository.
-- [x] Define architecture.
-- [ ] Add package/service skeleton.
-- [ ] Define camera config format.
-- [ ] Define stable device identity.
-- [ ] Define local SQLite schema.
+## Phase 0 — OS and diagnostics
+- [x] Define project architecture and acceptance gates.
+- [ ] Reproducible Raspberry Pi OS Lite 32-bit image and dependency baseline.
+- [ ] Python package skeleton, service units, installer stub and tests.
+- [ ] Detect Pi/sensor, capture modes, RTC, USB, codec capability.
+- [ ] Stable Unit/Box identity and typed configuration.
 
-## Phase 1 - Recorder MVP
+## Phase 1 — Recorder MVP
+- [ ] Prove bare hardware H.264 recording without MotionEye.
+- [ ] Detect/mount correct USB; hourly finalized segments.
+- [ ] Validate 800x600, 720p30 and 1080p30.
+- [ ] Watchdog checks frame progress and real recording bytes.
+- [ ] Persistent event journal and RTC time validation.
+- [ ] Test 24–48h including reboot, failed USB and power loss.
 
-Goal: replace MotionEye for the core job.
+## Phase 2 — Image and live preview
+- [ ] Timestamp, TSP logo and Box ID in bottom-right overlay.
+- [ ] Verify TSP AI OCR with representative actual footage.
+- [ ] Shared low-resolution 1–5 FPS on-demand preview.
+- [ ] Benchmark capture CPU/RAM/temperature and recording continuity.
 
-- [ ] Detect supported camera.
-- [ ] Record continuously at initial TSP profile.
-- [ ] Split recordings into 1-hour files.
-- [ ] Record to USB.
-- [ ] Recover after recorder/camera failure.
-- [ ] Persist recorder status.
-- [ ] Validate recording by checking that the active file grows.
+## Phase 3 — Technician panel and storage
+- [ ] Mobile status, settings and camera capability detection.
+- [ ] USB and microSD target selection; never silent fallback.
+- [ ] Files search/browse/download with pagination.
+- [ ] USB filesystem identify, format suggestion and guarded exFAT format.
+- [ ] Recording hours estimate for each profile.
+- [ ] One-click diagnostics export.
 
-Acceptance test:
-- 12+ hour recording test on Pi Zero 2 W with no MotionEye installed.
-- power cycle recovery
-- USB remove/reinsert failure test
-- camera ribbon/module failure test
+## Phase 4 — Field connectivity
+- [ ] Android Bluetooth PAN plus temporary Internet.
+- [ ] 15-minute per-boot Wi-Fi AP with unique credentials.
+- [ ] Protected local access, pairing and disconnection recovery.
 
-## Phase 2 - Local diagnostics
+## Phase 5 — Installer and OTA
+- [ ] One-command supported image installer via authenticated trusted artifacts.
+- [ ] Signed GitHub release manifest, staged download and verified integrity.
+- [ ] Panel check -> review -> explicit confirm -> safe segment boundary.
+- [ ] Health verification, rollback and interrupted-update recovery.
+- [ ] No USB wipe and persistent identity/config preservation.
 
-- [ ] Lightweight HTTP API.
-- [ ] Small mobile-friendly local panel.
-- [ ] Camera / recording / USB / RTC / temperature / uptime status.
-- [ ] Low-resolution preview only when requested.
-- [ ] Restart recorder.
-- [ ] Safe shutdown/reboot.
+## Phase 6 — Fleet integration
+- [ ] TSP OS Unit and installation API.
+- [ ] Offline queue, deduplicated event sync and health dashboard.
+- [ ] Pilot 3+ devices then staged deployment to fleet.
 
-## Phase 3 - Bluetooth
-
-- [ ] Pairing workflow.
-- [ ] Connect Raspberry Pi to Android phone Bluetooth tethering.
-- [ ] Verify `bnep*` networking.
-- [ ] Reach local panel from phone.
-- [ ] Verify Internet access through phone.
-- [ ] Auto-reconnect policy.
-- [ ] Disable Wi-Fi in field image.
-
-## Phase 4 - Offline sync
-
-- [ ] SQLite event queue.
-- [ ] Device/install logs.
-- [ ] Health events.
-- [ ] Sync when Internet appears.
-- [ ] Retry/backoff.
-- [ ] Deduplication/idempotency.
-
-## Phase 5 - RTC / install workflow
-
-- [ ] RTC read at boot.
-- [ ] NTP -> RTC update when Internet exists.
-- [ ] Installer phone can confirm/correct camera time.
-- [ ] Installation record sent to TSP OS.
-- [ ] Camera rename/unit assignment workflow.
-
-## Phase 6 - Power integration
-
-- [ ] Battery telemetry interface.
-- [ ] Optional battery percentage/voltage data.
-- [ ] Safe low-battery shutdown policy.
-- [ ] Timed power controller integration.
-
-## Not in the MVP
-
-- motion detection
-- AI vehicle counting
-- permanent SIM per camera
-- always-on high-resolution live streaming
-- large desktop-style MotionEye replacement UI
+## Deferred until initial pilot is stable
+- Battery telemetry/hot swap and timed power.
+- Autofocus/zoom adapter support for future sensor modules.
+- AI inference on-device or motion detection (not part of base recorder).
