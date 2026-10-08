@@ -11,11 +11,11 @@ Authoritative specifications: [MASTER_PLAN](MASTER_PLAN.md), [FIELD_REQUIREMENTS
 
 ## Phase 1 — Recorder MVP
 - [ ] Prove bare hardware H.264 recording without MotionEye.
-- [ ] Detect/mount correct USB; hourly finalized segments.
+- [ ] Auto-record at boot/USB insertion without phone or panel; 60-minute physical MP4 files, compatible with office repair.
 - [ ] Validate 800x600, **1280x960@30**, 720p30 and 1080p30, including FOV/crop and TSP AI compatibility; reject unverified 720p60 claims.
-- [ ] Watchdog checks frame progress and real recording bytes.
-- [ ] Persistent event journal and RTC time validation.
-- [ ] Test >48h including active/stalled frame detection, reboot, failed USB, power loss, FPS timestamp checks and disk corruption.
+- [ ] Watchdog checks frame progress and real recording bytes; panel shows active file creation/progression.
+- [ ] Persist AUTO/MANUAL time mode, RTC read/write and manual override; warn on phone/camera clock mismatch; record clock changes.
+- [ ] Test >48h including active/stalled frames, boot autostart, unplug/reinsert/full USB, no-overwrite clock collisions, MP4 repair, power loss and safe full-system poweroff.
 
 ## Phase 2 — Image and live preview
 - [ ] Timestamp, TSP logo and Box ID in bottom-right overlay.
@@ -29,7 +29,7 @@ Authoritative specifications: [MASTER_PLAN](MASTER_PLAN.md), [FIELD_REQUIREMENTS
 - [ ] Files search/browse/download with pagination.
 - [ ] USB filesystem identify, format suggestion and guarded exFAT format.
 - [ ] Recording hours estimate for each profile.
-- [ ] One-click diagnostics export.
+- [ ] One-click diagnostics export and full-system safe Power Down.
 
 ## Phase 4 — Field connectivity
 - [ ] Android Bluetooth PAN plus temporary Internet.
@@ -54,3 +54,5 @@ Authoritative specifications: [MASTER_PLAN](MASTER_PLAN.md), [FIELD_REQUIREMENTS
 - AI inference on-device or motion detection (not part of base recorder).
 
 See [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) before choosing build dependencies.
+
+Confirmed technician operation workflow: [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md).
