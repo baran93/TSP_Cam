@@ -101,8 +101,13 @@ See [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) for the researched production c
 
 [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) overrides earlier exploratory alternatives on these matters:
 - Begin recording automatically **on boot once usable USB is mounted**, or on later USB insertion; never depend on phone/panel.
-- Preserve **physical hourly MP4 files** compatible with the TSP office's repair workflow; do not deploy shorter physical clips or a different container without explicit agreement and field compatibility tests. The exact 60-min rotation alignment is awaiting confirmation.
+- Preserve **physical hourly MP4 files** compatible with the TSP office's repair workflow; do not deploy shorter physical clips or a different container without explicit agreement and field compatibility tests. **Confirmed: each physical MP4 file targets 3600 seconds elapsed from recording start, without wall-clock hour alignment; time measured monotonically and actual split committed at safe keyframe.**
 - **No overwrites, no circular deletion.** On USB full -> alarm and stop. Use unique collision-resistant filenames even after RTC changes and reboot.
 - Timestamp AUTO versus MANUAL mode is persisted. MANUAL must not be overwritten by background NTP; explicit set time updates system clock and hardware RTC. AUTO can use internet NTP over Android PAN and save to RTC, phone time comparison in authenticated panel only warns unless user confirms correction.
 - Technician checks low-FPS view, active filename and real recording progress, as well as RTC status/clock mismatch.
 - **Power Down powers off the complete Pi**, after recording close and buffered writes are flushed; do not imply it cuts external battery power.
+
+
+## Segment rotation decision
+
+Operator-confirmed 2026-10-08: normal video segment duration **3600 seconds since recording start**, not calendar-hour boundaries. Preserve MP4 repair/office workflow and never overwrite files after restart/time correction. A clean shutdown or interruption may produce a shorter final file. See [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md).
