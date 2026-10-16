@@ -12,14 +12,14 @@ Every PR updates this file ([AGENTS.md](../AGENTS.md) §5.3).
 | Task | Implementer | Reviewer | State |
 |---|---|---|---|
 | Collaboration rules and documentation consolidation (PR #1) | Claude | ChatGPT | Reviewed: 5 fixes requested, all applied. Waiting for ChatGPT's re-check and the owner's merge. |
-| Bluetooth: BLE discovery → Classic PAN, recovery (D15) (PR #2) | Claude | ChatGPT | PR open, stacked on PR #1 (merge #1 first). Waiting for review. |
+| Bluetooth: BLE discovery → Classic PAN, recovery (D15) (PR #2) | Claude | ChatGPT | PR open, stacked on PR #1 (merge #1 first). Owner decisions on recovery and phones added; waiting for review. |
 
 ## Done
 
 - **2026-10-08** — Design documentation written by ChatGPT with the owner: master plan, field requirements, field operation contract, OTA design, technical risk audit, recommended stack, market research.
 - **2026-10-16** — Shared rules for both agents ([AGENTS.md](../AGENTS.md)), product brief added ([PROJECT_BRIEF.md](PROJECT_BRIEF.md)), [DECISIONS.md](DECISIONS.md) reduced to decisions in force with history in [DECISION_HISTORY.md](DECISION_HISTORY.md), contradictions between documents removed or flagged below.
 - **2026-10-16** — First cross-review: ChatGPT reviewed PR #1 and requested 5 fixes (language as a proposal, technical recommendations vs decisions, branch protection not yet enabled, Wi-Fi wording, brief authorship). Claude applied them in the same PR. The owner confirmed the Wi-Fi boot behaviour (D3).
-- **2026-10-16** — Owner accepted the Bluetooth direction: BLE discovery, then Classic PAN, back to BLE after the session (D15). Contested and open parts are Q8 and Q9.
+- **2026-10-16** — Owner accepted the Bluetooth direction: BLE discovery, then Classic PAN, back to BLE after the session (D15). Then decided: one automatic reboot as last resort followed by emergency mode (D2 amended), Web Bluetooth page as the phone client, Android and iPhone support (D5 amended). Open: the iPhone path (Q9).
 
 ## Open questions for the owner
 
@@ -33,7 +33,7 @@ Found while aligning the documents. Flagged, not resolved; none of them reopens 
 
 **Q3. Default recording profile.** Candidates: 1280×960@30 (full field of view), 1080p30 (centre-cropped on OV5647), 800×600 (legacy). Suggested rule: decide after the field-of-view, OCR and 48 h tests (Gate B). Confirm the rule or set a default.
 
-**Q4. Wi-Fi after the first 15 minutes.** Decided (D3, confirmed 2026-10-16): the AP switches on automatically at every boot, regardless of Bluetooth, and switches off after 15 minutes. Still open: after those 15 minutes, should it be possible to (a) extend the AP from the panel, or (b) re-enable it without rebooting the camera, e.g. with a physical button or reed switch (a hardware change)? The risk audit recommends a recovery path: if Bluetooth fails at hour 3, today the only way back in is a reboot.
+**Q4. Wi-Fi after the first 15 minutes.** Decided (D3, confirmed 2026-10-16): the AP switches on automatically at every boot, regardless of Bluetooth, and switches off after 15 minutes. Rejected (D15): automatic or periodic Wi-Fi as a Bluetooth fallback, because of battery drain. Still open: after those 15 minutes, should it be possible to (a) extend the AP from the panel, or (b) re-enable it without rebooting the camera, e.g. with a physical button or reed switch (a hardware change)? The risk audit recommends a recovery path: if Bluetooth fails at hour 3, today the only way back in is a reboot.
 
 **Q5. Fleet size.** The OTA documents assumed about 200 units; the brief mentions about 400 OV5647 modules. How many Pi units will run TSP_Cam? This affects update rollout and credential distribution.
 
@@ -41,14 +41,13 @@ Found while aligning the documents. Flagged, not resolved; none of them reopens 
 
 **Q7. Product brief.** [PROJECT_BRIEF.md](PROJECT_BRIEF.md) was compiled by ChatGPT from your requirements, not written by you word for word. It ranks second in the precedence list ([AGENTS.md](../AGENTS.md) §4), so please confirm it as the approved product description or say what to change.
 
-**Q8. When Bluetooth cannot be recovered.** Agreed: retry PAN → restart Bluetooth service → reset controller → reload driver, all without stopping recording (D15). Not agreed — what after repeated failure (e.g. 3 rounds):
-- (a) **Owner's first idea:** full system reboot, recording included.
-- (b) **Claude's proposal:** first switch the Wi-Fi AP on for 15 minutes (no recording gap; this also answers part of Q4). Reboot only if Wi-Fi does not come up either (Bluetooth and Wi-Fi share one radio chip, so a hung chip takes both), right after a full-hour file split, at most once per 24 h, logged as a recording gap.
-- (c) **ChatGPT's position:** no automatic reboot of a recording camera without a separate owner decision; Bluetooth-level recovery only.
+**Q8. Resolved 2026-10-16** → D2 amended, D15: Bluetooth recovery without stopping recording; then one automatic reboot; then emergency mode (record only until physical power-off). No periodic Wi-Fi fallback. Open detail: reboot timing — proposal to reboot right after the next full-hour file split (FIELD_REQUIREMENTS *Bluetooth session flow*).
 
-A reboot breaks D2 (no connectivity failure may interrupt recording) and risks a reboot loop if the Bluetooth hardware is dead, so (a) or (b) would mean amending D2. Choose (a), (b), (c) or another rule.
-
-**Q9. Phone-side client for BLE.** Android does not start the BLE → PAN flow from its Bluetooth settings, so technicians need either (a) a small Android app or (b) a Web Bluetooth page in Chrome, installed on the phone beforehand so it works offline. Also: how phones are authorised (pairing at the office vs in the field, allowlist of technician phones, per-box key). Who builds and maintains the client?
+**Q9. iPhone and the Web Bluetooth page.** Decided: a Web Bluetooth page, Android and iPhone both supported (D5, D15). Problem: **Safari on iPhone does not support Web Bluetooth** (caniuse lists Safari iOS up to 27.2 as unsupported; only a third-party Safari extension, iOSWebBLE, adds it). Chrome on Android does support it. Options for iPhone:
+- (a) the same page through a third-party Web Bluetooth extension or browser on iPhone — one codebase, but an extra install and a dependency on a small third-party product;
+- (b) a native iOS app just for the BLE request — reliable, but App Store distribution and a second codebase;
+- (c) iPhones skip BLE: the camera periodically tries Classic PAN to known iPhones (costs some power), or technicians use the 15-minute Wi-Fi window after boot.
+Also open: how phones are authorised (pairing at the office vs in the field, allowlist, per-box key), where the page is hosted and kept offline on phones, who builds and maintains it.
 
 ## Owner actions
 
@@ -66,7 +65,8 @@ Moved here from MASTER_PLAN so open items live in one place:
 - MP4 behaviour on power loss: active file repairable with the office MP4 tool, previous files readable.
 - Stamp overlay CPU cost at 1080p30; if too expensive, compare GPU/compositor options or simpler burned-in glyphs.
 - Android Bluetooth PAN reliability across technicians' phones; Wi-Fi AP and Bluetooth coexistence.
-- BLE → Classic PAN transition on technicians' real phones (D15).
+- BLE → Classic PAN transition on technicians' real Android phones and iPhones (D15); Linux PAN to iPhone Personal Hotspot.
+- Automatic-reboot counter: exactly one reboot per power-on period, correctly reset by a physical power cycle (D15).
 - Current draw on Zero 2 W: BLE waiting vs Classic connectable waiting vs active PAN — decides whether BLE is worth the phone-side client.
 - Update signing service and read-only delivery for the private repository.
 - Objective acceptance limits (maximum gap, frame loss, current draw), set after the baseline hardware test.
@@ -79,7 +79,7 @@ The P0/P1 list in [TECHNICAL_RISK_AUDIT.md](TECHNICAL_RISK_AUDIT.md) is current 
 
 Proposed order; the owner assigns implementer and reviewer for each task.
 1. ChatGPT re-checks the fixes in PR #1. The owner answers Q1–Q7 (PR comments are fine; answers can also come later) and merges.
-2. ChatGPT reviews PR #2 (merge after #1). The owner answers Q8 and Q9.
+2. ChatGPT reviews PR #2 (merge after #1). The owner answers Q9 (iPhone path).
 3. Hardware bring-up on one Zero 2 W + OV5647: run the read-only checklist from [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) and commit the results. Needs the owner with the hardware.
 4. Phase 0 code: Python package skeleton, tests, systemd unit stubs, read-only diagnostics command.
 5. Phase 1 recorder MVP: hardware H.264 to hourly MP4 at clock boundaries, autostart on USB, 48 h test.

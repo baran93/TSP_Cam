@@ -44,7 +44,7 @@ Priority top screen:
 
 Minimal technician flow:
 1. Connect power + USB, recording auto-starts once usable.
-2. Enable Bluetooth tethering on the Android phone, find the camera over BLE in the TSP phone client and request a connection; the camera connects Bluetooth PAN (D15). During the first 15 minutes after boot the Wi-Fi AP is an alternative. Open the panel.
+2. Enable Bluetooth tethering / Personal Hotspot on the phone, find the camera over BLE in the TSP Web Bluetooth page and request a connection; the camera connects Bluetooth PAN (D15). During the first 15 minutes after boot the Wi-Fi AP is an alternative. Open the panel.
 3. Aim camera using low FPS preview.
 4. Verify recording status, current filename created and data is progressing.
 5. Verify camera date/time matches expected survey schedule or intentional manual time.

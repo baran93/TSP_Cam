@@ -5,7 +5,7 @@ Short overview only. Binding behaviour is in [DECISIONS.md](DECISIONS.md) and [F
 ## Principles
 
 1. Recording is the highest-priority function.
-2. Recording does not depend on Bluetooth, Wi-Fi, Internet, the web panel or TSP OS (D2).
+2. Recording does not depend on Bluetooth, Wi-Fi, Internet, the web panel or TSP OS (D2). Single exception: one automatic reboot per power-on period when Bluetooth cannot be recovered (D15).
 3. Offline first (D4).
 4. Bluetooth is the normal service link. An emergency Wi-Fi AP switches on automatically at every boot and off after 15 minutes (D3); extending or re-enabling it later is undecided (Q4).
 5. Everything must fit Raspberry Pi Zero 2 W (512 MB RAM) and minimise CPU and power use.
@@ -63,7 +63,7 @@ Do not assume the camera is always `/dev/video0`.
 
 ## Bluetooth
 
-While waiting, the camera advertises over BLE. The technician's phone sends an authenticated request over BLE; the camera then connects to the phone's Bluetooth tethering as PANU, and returns to BLE when the session ends (D15; flow and constraints in [FIELD_REQUIREMENTS.md](FIELD_REQUIREMENTS.md) *Bluetooth session flow*). BlueZ Network API supports PAN roles (PANU/NAP) and exposes the link as a Linux interface such as `bnep0`; the Pi gets a local IP and temporary Internet, and the panel is reachable over that link. No permanent SIM per camera.
+While waiting, the camera advertises over BLE. The technician's phone (Android or iPhone, D5) sends an authenticated request over BLE from a Web Bluetooth page; the camera then connects to the phone's Bluetooth tethering as PANU, and returns to BLE when the session ends (D15; flow and constraints in [FIELD_REQUIREMENTS.md](FIELD_REQUIREMENTS.md) *Bluetooth session flow*). BlueZ Network API supports PAN roles (PANU/NAP) and exposes the link as a Linux interface such as `bnep0`; the Pi gets a local IP and temporary Internet, and the panel is reachable over that link. No permanent SIM per camera.
 
 Bluetooth carries the panel, setup, status/logs and temporary Internet. Continuous high-quality live video is not a goal; preview is low-resolution and on demand.
 
@@ -71,7 +71,8 @@ Bluetooth carries the panel, setup, status/logs and temporary Internet. Continuo
 
 - Phone disconnects → recording continues.
 - TSP OS unavailable → events stay queued locally.
-- Panel or Bluetooth crashes → recording continues.
+- Panel crashes → recording continues.
+- Bluetooth fails → recovery without stopping recording; if it cannot be recovered, one automatic reboot, then emergency mode that only records until power-off (D15).
 - USB full or unmounted → critical health state, alarm, no writes to microSD (D6, D7).
 - Camera disappears → capture retries with bounded backoff and records the gap.
 

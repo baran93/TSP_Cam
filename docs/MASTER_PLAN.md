@@ -16,7 +16,7 @@ Replace MotionEye on TSP PiCam (Raspberry Pi Zero 2 W) with a robust, low-overhe
 1. **tspcam-capture**: single persistent camera owner: mode/camera discovery, H.264 hardware encoder, segmentation, burn-in overlay (if feasible), lores frames to preview subscribers only, monotonic record/liveness counters, safe stop.
 2. **tspcam-control**: small authenticated HTTP server and static mobile UI; configuration validation, read-only storage browser, on-demand preview and status. Separate systemd unit, non-root.
 3. **tspcam-agent**: background health, hardware/time/storage probes, durable event logging; may initially be bundled in a lightweight service. Reports independent of browser.
-4. **tspcam-connectivity**: BlueZ/NetworkManager or documented equivalent for BLE technician discovery → Classic Android PAN session (D15), Bluetooth recovery without touching capture, and 15-min boot emergency Wi-Fi AP (AP password unique per Unit; auto-off timer; service restore; coexistence tested). No permanent SIM.
+4. **tspcam-connectivity**: BlueZ/NetworkManager or documented equivalent for BLE technician discovery → Classic PAN session with Android or iPhone (D15), Bluetooth recovery with a single automatic reboot as last resort, and 15-min boot emergency Wi-Fi AP (AP password unique per Unit; auto-off timer; service restore; coexistence tested). No permanent SIM.
 5. **tspcam-updater**: independently privileged, narrowly-scoped signed-release installer with transactional switch and rollback.
 6. **tspcam-sync**: optional deferred uploader to TSP OS, consuming offline queue; Unit ID canonical in TSP OS.
 
@@ -65,7 +65,7 @@ Reduce daemon count if measurements show 512 MB RAM pressure; separation is logi
 **Gate A: baseline:** clean OS, sensor auto-detect, accurate RTC, stable identity/config.
 **Gate B: capture:** 24-48h 720p30 and 1080p30; real readable segments, target FPS, timestamp OCR pass, USB free space and correct FOV, low RAM, no unexpected gaps. Test at least one real power loss (acknowledge active segment risk).
 **Gate C: control:** background recording + user file search, live 2fps preview, format dry-run; CPU/thermal/RAM and recording gap comparisons.
-**Gate D: connectivity:** one Android phone: BLE discovery → authenticated request → Classic PAN → return to BLE (D15), temporary Internet, service panel IP, boot emergency AP reachable for 15min and then off; recovery after radio/phone disconnect.
+**Gate D: connectivity:** one Android phone and one iPhone: BLE discovery → authenticated request → Classic PAN → return to BLE (D15), temporary Internet, service panel IP, boot emergency AP reachable for 15min and then off; recovery after radio/phone disconnect.
 **Gate E: OTA:** valid signed release, bad signature rejection, loss of Internet mid-download, failed service startup, interrupted activation/reboot, rollback including SQLite compatibility.
 **Gate F: pilot:** at least 3 PiCams / drives with varied wear, 48-72h installs, field staff feedback, then canary rollout before fleet.
 

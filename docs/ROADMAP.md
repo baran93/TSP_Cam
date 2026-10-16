@@ -33,9 +33,9 @@ Phase plan only. Binding decisions: [DECISIONS.md](DECISIONS.md); current progre
 - [ ] One-click diagnostics export and full-system safe Power Down.
 
 ## Phase 4 — Field connectivity
-- [ ] Android Bluetooth PAN plus temporary Internet (base for D15; needed in any case).
-- [ ] BLE advertising + authenticated GATT request → Classic PAN → return to BLE (D15). Phone-side client per Q9.
-- [ ] Bluetooth recovery without stopping capture: retry PAN → restart service → reset controller → reload driver. Behaviour after repeated failure per Q8.
+- [ ] Bluetooth PAN to Android tethering and iPhone Personal Hotspot, plus temporary Internet (base for D15; needed in any case).
+- [ ] BLE advertising + authenticated GATT request from the Web Bluetooth page → Classic PAN → return to BLE (D15). iPhone path per Q9.
+- [ ] Bluetooth recovery (D15): retry PAN → restart service → reset controller → reload driver without stopping capture; then one automatic reboot; then emergency mode (record only until power-off). Test the reboot counter across reboots and physical power cycles.
 - [ ] Measure Zero 2 W current: BLE waiting vs Classic waiting vs active PAN; owner reviews whether BLE is worth keeping.
 - [ ] Wi-Fi AP automatically on for 15 minutes after every boot, with unique credentials (D3).
 - [ ] Only if the owner adopts it (Q4): extend or re-enable the AP after 15 minutes without rebooting capture.
