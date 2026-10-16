@@ -72,7 +72,8 @@ Bluetooth carries the panel, setup, status/logs and temporary Internet. Continuo
 - Phone disconnects → recording continues.
 - TSP OS unavailable → events stay queued locally.
 - Panel crashes → recording continues.
-- Bluetooth fails → recovery without stopping recording; if it cannot be recovered, one automatic reboot, then emergency mode that only records until power-off (D15).
+- No phone, or the phone's tethering is off → recording continues, the camera keeps waiting; never a reboot.
+- The camera's own Bluetooth fails → recovery without stopping recording; if it cannot be recovered, one automatic reboot, then emergency mode that only records until power-off (D15).
 - USB full or unmounted → critical health state, alarm, no writes to microSD (D6, D7).
 - Camera disappears → capture retries with bounded backoff and records the gap.
 
