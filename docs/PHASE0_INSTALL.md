@@ -51,7 +51,7 @@ This installer does **not** implement H.264/MP4 recording, Bluetooth PAN, Wi-Fi 
 
 ## USB storage pilot
 
-A physically attached USB filesystem is discovered using `lsblk` (only USB transport, not SD). The installer enables a conservative `tspcam-usb-mount.timer` that checks every 30 seconds for a single eligible USB filesystem, and the one-shot mount service attempts to mount it to `/media/tspcam`, without formatting. Existing valid USB mounts such as `/media/usb0` are reused instead. More than one ambiguous unmounted USB volume is not auto-selected.
+Physical USB drives and their partitions are scanned using `lsblk --tree`. The systemd mount timer checks about every 30 seconds. A sole supported volume is chosen automatically; when several are connected, the technician chooses a stable UUID/PARTUUID in the panel. Existing mounts are reused, otherwise each supported selected volume receives an isolated mount path below `/media/tspcam-volumes`. No formatting, unmounting or SD fallback.
 
 The dashboard distinguishes **USB detected**, **mounted**, and **writable / future recording destination**. If the volume is unmounted, read-only, inaccessible to the web service or not a supported format, it cannot be a recording destination. **Never fallback to the microSD**. This does not start any MP4 recording.
 
@@ -61,6 +61,21 @@ Check after installation:
 lsblk -o NAME,TRAN,TYPE,FSTYPE,MOUNTPOINTS,LABEL,SIZE
 systemctl status tspcam-usb-mount.timer tspcam-usb-mount.service --no-pager
 tspcam status
+```
+
+## Multiple USB volumes / recording destination
+
+The web panel now lists **every discovered USB disk volume** rather than blindly picking `/dev/sda1`. It displays volume label/model, Linux device, filesystem, capacity and mounted status. Connect one usable drive and it is selected automatically. If two or more partitions/USB drives are discovered, pick the destination from the **USB recording destination** dropdown and select **Select this USB drive**; the app remembers a UUID/PARTUUID instead of the unstable `/dev/sda` / `/dev/sdb`.
+
+The selected volume will be mounted by the timer (normally within 30 seconds) into a **distinct** `/media/tspcam-volumes/usb-<id>` directory if not already mounted elsewhere. A fresh `TSP_Cam` directory is created on that verified volume only; other data on the USB remains untouched. It will eventually be the recorder's output directory, but the H.264/MP4 recorder **does not exist yet**.
+
+Linux-compatible writable formats include **FAT/FAT32 (vfat), exFAT, NTFS, ext2/3/4, XFS, Btrfs and F2FS**, subject to installed kernel/driver/helpers and writable permissions. The inventory displays other recognized formats too (e.g. APFS, ISO9660, HFS+) but will **not** falsely offer writable recording on them. A missing/wrongly formatted drive is never formatted automatically. Multiple drives do not trigger auto-picking one by index. If the selected disk is removed, the program refuses to silently switch to another disk or microSD.
+
+If storage is missing or cannot be mounted, run:
+```sh
+lsblk -o NAME,PATH,TRAN,TYPE,FSTYPE,MOUNTPOINTS,LABEL,SIZE
+sudo systemctl status tspcam-usb-mount.service --no-pager
+sudo journalctl -u tspcam-usb-mount.service -n 15 --no-pager
 ```
 
 ## Preview and device settings

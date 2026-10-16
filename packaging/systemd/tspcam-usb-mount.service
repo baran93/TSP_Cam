@@ -1,5 +1,5 @@
 [Unit]
-Description=TSP_Cam pilot USB automount (real USB, single filesystem only)
+Description=TSP_Cam pilot USB automount (real USB, selected USB filesystem only)
 After=local-fs.target systemd-udev-settle.service
 ConditionPathExists=/opt/tspcam/current/tspcam/usb_storage.py
 
