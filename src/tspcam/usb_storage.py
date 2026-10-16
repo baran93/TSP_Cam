@@ -216,6 +216,27 @@ def inspect_usb(config_mount=None, *, lsblk_data=None, choice=None):
     return result
 
 
+def _prepare_recording_folder(point):
+    """Create only a new TSP_Cam folder on the verified selected USB.
+
+    Never chmod/chown the filesystem root or an existing user directory.
+    """
+    root = Path(point)
+    target = root / "TSP_Cam"
+    if target.is_symlink():
+        return "Recording directory is a symlink; refusing"
+    if target.exists():
+        return "Recording directory already exists"
+    import pwd
+    user = pwd.getpwnam("tspcam")
+    try:
+        target.mkdir(mode=0o750)
+        os.chown(target, user.pw_uid, user.pw_gid)
+        return "Created " + str(target)
+    except OSError as exc:
+        return "Could not create recording folder: " + str(exc)[:140]
+
+
 def ensure_mount(*, choice_path=CHOICE_PATH):
     """Root mount service; never blindly mounts or alters arbitrary user disk."""
     if os.geteuid() != 0:
@@ -231,7 +252,7 @@ def ensure_mount(*, choice_path=CHOICE_PATH):
         return "Selected disk is not writable/mountable"
     existing = _mounted_path(vol)
     if existing:
-        return "Already mounted " + vol["source"] + " at " + existing
+        return "Already mounted " + vol["source"] + " at " + existing + "; " + _prepare_recording_folder(existing)
     # If it has another reported mountpoint, do not create a duplicate mount.
     if vol["mountpoints"]:
         return "Reported mounted elsewhere, awaiting mount availability"
@@ -269,7 +290,7 @@ def ensure_mount(*, choice_path=CHOICE_PATH):
         return "mount_error: " + str(exc)[:160]
     if call.returncode:
         return "mount_error: " + call.stderr.strip()[:180]
-    return "Mounted " + source + " at " + str(target)
+    return "Mounted " + source + " at " + str(target) + "; " + _prepare_recording_folder(target)
 
 
 def main():
