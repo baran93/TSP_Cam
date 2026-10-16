@@ -1,6 +1,6 @@
 # Project status
 
-**Last updated:** 2026-10-16 by Claude, Bluetooth PR (branch `claude/bluetooth-ble-pan`, stacked on PR #1).
+**Last updated:** 2026-10-16 by Claude, PR #2 (branch `claude/bluetooth-ble-pan`, stacked on PR #1).
 Every PR updates this file ([AGENTS.md](../AGENTS.md) §5.3).
 
 ## Phase
@@ -12,7 +12,7 @@ Every PR updates this file ([AGENTS.md](../AGENTS.md) §5.3).
 | Task | Implementer | Reviewer | State |
 |---|---|---|---|
 | Collaboration rules and documentation consolidation (PR #1) | Claude | ChatGPT | Reviewed: 5 fixes requested, all applied. Waiting for ChatGPT's re-check and the owner's merge. |
-| Bluetooth: BLE discovery → Classic PAN, recovery (D15) | Claude | ChatGPT | PR open, stacked on PR #1 (merge #1 first). Waiting for review. |
+| Bluetooth: BLE discovery → Classic PAN, recovery (D15) (PR #2) | Claude | ChatGPT | PR open, stacked on PR #1 (merge #1 first). Waiting for review. |
 
 ## Done
 
@@ -79,7 +79,7 @@ The P0/P1 list in [TECHNICAL_RISK_AUDIT.md](TECHNICAL_RISK_AUDIT.md) is current 
 
 Proposed order; the owner assigns implementer and reviewer for each task.
 1. ChatGPT re-checks the fixes in PR #1. The owner answers Q1–Q7 (PR comments are fine; answers can also come later) and merges.
-2. ChatGPT reviews the Bluetooth PR (merge after #1). The owner answers Q8 and Q9.
+2. ChatGPT reviews PR #2 (merge after #1). The owner answers Q8 and Q9.
 3. Hardware bring-up on one Zero 2 W + OV5647: run the read-only checklist from [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) and commit the results. Needs the owner with the hardware.
 4. Phase 0 code: Python package skeleton, tests, systemd unit stubs, read-only diagnostics command.
 5. Phase 1 recorder MVP: hardware H.264 to hourly MP4 at clock boundaries, autostart on USB, 48 h test.
