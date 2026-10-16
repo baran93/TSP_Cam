@@ -22,10 +22,11 @@ class USBStorageTests(unittest.TestCase):
         self.assertFalse(state["detected"])
         self.assertIsNone(state["recording_root"])
 
+    @patch("tspcam.usb_storage.Path.is_dir", return_value=True)
     @patch("tspcam.usb_storage.os.path.ismount", return_value=True)
     @patch("tspcam.usb_storage.os.access", return_value=True)
     @patch("tspcam.usb_storage.os.statvfs")
-    def test_detects_usb_at_usb0(self, statvfs, access, ismount):
+    def test_detects_usb_at_usb0(self, statvfs, access, ismount, isdir):
         statvfs.return_value = MagicMock(f_blocks=1000, f_frsize=1024, f_bavail=400, f_bfree=400, f_flag=0)
         state = inspect_usb(Path("/media/tspcam"), lsblk_data=volume("/media/usb0"))
         self.assertEqual(state["recording_root"], "/media/usb0")

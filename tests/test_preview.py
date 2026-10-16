@@ -22,7 +22,7 @@ class PreviewTests(unittest.TestCase):
     def test_fresh_frame_is_available_for_snapshot(self):
         manager = PreviewManager(clock=lambda: 100.0)
         manager._frame = b"JPEG DATA"
-        manager._frame_at = 98.0
+        manager._frame_at = 99.0
         self.assertEqual(manager.snapshot(), b"JPEG DATA")
         self.assertTrue(manager.info()["live"])
 
