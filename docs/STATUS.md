@@ -43,11 +43,12 @@ Found while aligning the documents. Flagged, not resolved; none of them reopens 
 
 **Q8. Resolved 2026-10-16** → D2 amended, D15: Bluetooth recovery without stopping recording; then one automatic reboot; then emergency mode (record only until physical power-off). No periodic Wi-Fi fallback. Open detail: reboot timing — proposal to reboot right after the next full-hour file split (FIELD_REQUIREMENTS *Bluetooth session flow*).
 
-**Q9. iPhone and the Web Bluetooth page.** Decided: a Web Bluetooth page, Android and iPhone both supported (D5, D15). Problem: **Safari on iPhone does not support Web Bluetooth** (caniuse lists Safari iOS up to 27.2 as unsupported; only a third-party Safari extension, iOSWebBLE, adds it). Chrome on Android does support it. Options for iPhone:
-- (a) the same page through a third-party Web Bluetooth extension or browser on iPhone — one codebase, but an extra install and a dependency on a small third-party product;
-- (b) a native iOS app just for the BLE request — reliable, but App Store distribution and a second codebase;
-- (c) iPhones skip BLE: the camera periodically tries Classic PAN to known iPhones (costs some power), or technicians use the 15-minute Wi-Fi window after boot.
-Also open: how phones are authorised (pairing at the office vs in the field, allowlist, per-box key), where the page is hosted and kept offline on phones, who builds and maintains it.
+**Q9. iPhone and the Web Bluetooth page.** Decided: a Web Bluetooth page, Android and iPhone both supported (D5, D15). Problem: **Safari on iPhone does not support Web Bluetooth** (caniuse lists Safari iOS up to 27.2 as unsupported). Chrome on Android does support it. Options for iPhone:
+- (a) the same page inside a free App Store browser with Web Bluetooth (e.g. *Bluefy – Web BLE Browser*) — no app of our own, but every iPhone technician installs it and we depend on a small third-party product;
+- (b) our own iOS app — needs an Apple Developer account and a Mac; without the public App Store it can be installed only via Ad Hoc distribution (registered devices, limited number per year) or as a private Custom App through Apple Business Manager;
+- (c) **no app on either platform:** phones are paired with the camera once (e.g. at the office); the camera itself periodically tries Classic PAN to the paired phones, and the technician only switches on Bluetooth tethering / Personal Hotspot. Same on Android and iPhone; costs periodic radio activity and some waiting — try more often right after boot and rarely later. This would replace the BLE "knock" rather than add to it.
+Energy context: published measurements of Zero 2 W (CNX Software, 2021) show about 0.6 W idle and only about +55 mW for Wi-Fi connected and idle, while camera capture with H.264 was reported at roughly +0.7 W (reader comment, unverified). The difference between BLE waiting and Classic waiting is therefore likely a few milliwatts — measure before choosing a design for energy reasons.
+Also open: how phones are authorised, where the page is hosted and kept offline, who builds and maintains it. ChatGPT is researching this question as well.
 
 ## Owner actions
 
@@ -67,7 +68,7 @@ Moved here from MASTER_PLAN so open items live in one place:
 - Android Bluetooth PAN reliability across technicians' phones; Wi-Fi AP and Bluetooth coexistence.
 - BLE → Classic PAN transition on technicians' real Android phones and iPhones (D15); Linux PAN to iPhone Personal Hotspot.
 - Automatic-reboot counter: exactly one reboot per power-on period, correctly reset by a physical power cycle (D15).
-- Current draw on Zero 2 W: BLE waiting vs Classic connectable waiting vs active PAN — decides whether BLE is worth the phone-side client.
+- Current draw on Zero 2 W while recording, one variable at a time: all radios off; + Wi-Fi AP; + Classic Bluetooth waiting; + BLE advertising; + periodic Classic PAN attempts (Q9 option c); + active PAN. Decides whether BLE is worth the phone-side client. Owner's earlier reference: about 1.5 W with Wi-Fi under MotionEye.
 - Update signing service and read-only delivery for the private repository.
 - Objective acceptance limits (maximum gap, frame loss, current draw), set after the baseline hardware test.
 
