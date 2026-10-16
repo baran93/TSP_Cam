@@ -25,7 +25,7 @@ if [[ ! -e /etc/tspcam/config.toml ]]; then
   install -o root -g tspcam -m 0640 "$ROOT/packaging/config.example.toml" /etc/tspcam/config.toml
 fi
 # Immutable release directories allow retaining the previous version.
-CONTENT_HASH="$(find "$ROOT/src/tspcam" "$ROOT/packaging/systemd" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c 1-12)"
+CONTENT_HASH="$(cd "$ROOT" && find src/tspcam packaging/systemd -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -c 1-12)"
 RELEASE="pilot-$CONTENT_HASH"
 DEST="$INSTALL_ROOT/releases/$RELEASE"
 STAGE="$(mktemp -d "$INSTALL_ROOT/releases/.stage.XXXXXXXX")"
@@ -44,7 +44,12 @@ if [[ -L "$INSTALL_ROOT/current" ]]; then
   mv -Tf -- "$INSTALL_ROOT/.previous.$$" "$INSTALL_ROOT/previous"
 fi
 ln -s -- "releases/$RELEASE" "$INSTALL_ROOT/.current.$$"
-mv -Tf -- "$INSTALL_ROOT/.current.$$" "$INSTALL_ROOT/current"
+mv -Tf -- "$INSTALL_ROOT/.current.$" "$INSTALL_ROOT/current"
+# Do not report a successful install or enable services on a dangling symlink.
+if [[ ! -f "$INSTALL_ROOT/current/tspcam/__init__.py" ]]; then
+  printf 'Install verification failed: current -> %s, expected Python package missing.\n' "$(readlink -- "$INSTALL_ROOT/current" || true)" >&2
+  exit 1
+fi
 install -o root -g root -m 0644 "$ROOT/packaging/systemd/tspcam-agent.service" /etc/systemd/system/tspcam-agent.service
 install -o root -g root -m 0644 "$ROOT/packaging/systemd/tspcam-web.service" /etc/systemd/system/tspcam-web.service
 cat >/usr/local/bin/tspcam <<'WRAPPER'
