@@ -1,6 +1,6 @@
 # Project status
 
-**Last updated:** 2026-10-16 by Claude, branch `claude/consolidate-docs`.
+**Last updated:** 2026-10-16 by Claude, PR #1 (branch `claude/consolidate-docs`).
 Every PR updates this file ([AGENTS.md](../AGENTS.md) §5.3).
 
 ## Phase
@@ -11,7 +11,7 @@ Every PR updates this file ([AGENTS.md](../AGENTS.md) §5.3).
 
 | Task | Implementer | Reviewer | State |
 |---|---|---|---|
-| Collaboration rules and documentation consolidation | Claude | ChatGPT | PR open, waiting for review and owner decision |
+| Collaboration rules and documentation consolidation (PR #1) | Claude | ChatGPT | PR open, waiting for review and owner decision |
 
 ## Done
 
