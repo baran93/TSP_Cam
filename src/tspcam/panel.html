@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>TSP_Cam | Camera dashboard</title>
+<style>
+:root{--nav:#111e2b;--nav2:#182b3b;--blue:#1454e8;--green:#0aa56d;--ink:#182739;--muted:#718091;--light:#f2f5f9;--border:#e2e8f0;--shadow:0 5px 22px rgba(33,57,85,.07)}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;background:var(--light);color:var(--ink);font-size:14px}
+button,a{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.55}a{color:var(--blue)}
+.layout{display:grid;grid-template-columns:216px minmax(0,1fr);min-height:100vh;max-width:2000px;margin:auto}
+.sidebar{background:linear-gradient(155deg,#101c29,#152d3d);color:#e8f1f8;padding:22px 13px;display:flex;flex-direction:column;gap:25px;position:sticky;top:0;height:100vh}
+.brand{display:flex;flex-direction:column;align-items:center;gap:7px;padding:0 3px}
+.brand-logo{display:flex;gap:2px;align-items:center;white-space:nowrap}.brand-logo b{display:grid;place-items:center;width:47px;height:47px;border-radius:50%;font-size:34px;line-height:1;color:white;font-weight:800;letter-spacing:-3px}
+.brand-logo b:nth-child(1){background:#e83e2e}.brand-logo b:nth-child(2){background:#fa9f20}.brand-logo b:nth-child(3){background:#06a66e}
+.brand-sub{font-weight:750;font-size:12px;white-space:nowrap;color:#f3f7fb}
+.nav{display:flex;flex-direction:column;gap:7px}.navbtn{display:flex;align-items:center;gap:12px;border:0;background:transparent;color:#c6d2dc;width:100%;text-align:left;border-radius:8px;padding:12px 13px;font-weight:600}
+.navbtn:hover,.navbtn.active{background:var(--blue);color:#fff}.navbtn .ico{width:22px;text-align:center;font-size:19px}.nav-divider{height:1px;background:#455362;margin:15px 9px 5px}.sidebar-end{font-size:11px;color:#849eae;margin-top:auto;padding:5px 12px}
+.main{min-width:0;padding:18px;display:flex;flex-direction:column;gap:15px}
+.top{background:white;border:1px solid var(--border);border-radius:15px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;gap:10px;padding:17px 22px;min-height:85px}
+.device-head{display:flex;gap:19px;align-items:center}.device-led{height:20px;width:20px;border-radius:50%;background:var(--green);box-shadow:0 0 0 8px #d7f5e8;flex:none}.device-name{font-weight:800;font-size:24px;line-height:1.1;overflow-wrap:anywhere}
+.online{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green);margin-top:3px}.online i{background:var(--green);height:8px;width:8px;border-radius:50%}
+.version{text-align:right;line-height:1.6;color:#607188;font-size:12px;flex-shrink:0}.version strong{display:block;color:var(--ink)}
+.content{display:none}.content.active{display:block}
+.dashboard{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(295px,.85fr);gap:13px}.card{background:white;border:1px solid var(--border);box-shadow:var(--shadow);border-radius:13px;padding:15px;min-width:0}
+.viewer{min-width:0}.video-stage{position:relative;aspect-ratio:4/3;background:#101923;overflow:hidden;border-radius:9px;display:flex;align-items:center;justify-content:center}.video-stage img{width:100%;height:100%;object-fit:contain}.time-badge{position:absolute;top:11px;left:11px;color:white;background:#08121ac4;border-radius:6px;padding:6px 9px;font:600 13px ui-monospace,monospace;max-width:74%;pointer-events:none}
+.live-badge{position:absolute;top:11px;right:11px;background:#5d6b7e;color:#fff;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.04em}.live-badge.live{background:#00a666}
+.preview-note{color:#64758a;font-size:12px;padding:10px 2px 0;min-height:30px}.actions{display:grid;grid-template-columns:1fr 1fr .8fr;gap:9px;margin-top:12px}
+.action{border:1px solid var(--border);background:linear-gradient(white,#f5f8fa);border-radius:8px;padding:11px 8px;text-align:center;font-weight:700;color:#2a3542;white-space:nowrap}
+.action:hover:not(:disabled){background:#e7f0ff}.action.record{color:#d74340}.action .red-dot{display:inline-block;width:11px;height:11px;border-radius:50%;background:#ef3e37;margin-right:6px}
+.stack{display:flex;flex-direction:column;gap:11px}.card-title{font-weight:800;font-size:15px;display:flex;align-items:center;gap:9px;margin:0 0 8px}.card-title .ci{display:grid;place-items:center;font-size:22px;width:26px}
+.details{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:13px;margin-top:13px}.details .key{color:#6f7f92}.details .val{font-weight:550;max-width:180px;overflow-wrap:anywhere;text-align:right}
+.green{color:#07875d!important}.gray{color:#6f7f92!important}.value{font-weight:800;font-size:16px}.card-link{color:#aab6c5;font-size:19px;float:right}
+.meter{height:10px;border-radius:30px;background:#e3e9ef;overflow:hidden;margin:10px 0}.meter b{display:block;height:100%;width:0;background:linear-gradient(90deg,#2aca89,#11b575);border-radius:30px}
+.grid-three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-top:12px}.mini{min-height:113px}
+.mini p{margin:5px 0;color:var(--muted);font-size:12px}.mini strong{display:block;font-size:18px;margin-top:9px}
+.wide{margin-top:12px}.empty{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px;color:#7e8e9f;background:#f5f8fb;border:1px dashed #dce5eb;border-radius:9px;min-height:85px;padding:15px;text-align:center}
+.eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:10px;font-weight:750;color:#8291a0}
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px}.section-heading h2{font-size:19px;margin:0}.section-heading small{color:#78869a}
+.s-card{padding:22px;margin-bottom:13px}.s-card h2{font-size:20px;margin:0 0 10px}.s-card p{color:#66778b;line-height:1.6}
+.data-lines{display:grid;grid-template-columns:minmax(110px,230px) minmax(0,1fr);gap:12px;border-top:1px solid var(--border);padding:11px 0}.data-lines span:first-child{color:#7b8899}.data-lines span:last-child{font-weight:650;overflow-wrap:anywhere}
+.muted{color:var(--muted)}.warning{color:#a26a16}.log{white-space:pre-wrap;overflow-wrap:anywhere;font:12px ui-monospace,SFMono-Regular,Consolas,monospace;background:#122536;color:#e4eff8;padding:15px;border-radius:8px}
+.mobile-tabs{display:none}
+@media(max-width:1100px){.layout{grid-template-columns:178px minmax(0,1fr)}.brand-logo b{height:38px;width:38px;font-size:28px}.brand-sub{font-size:10px}.dashboard{grid-template-columns:minmax(0,1fr)}.stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.stack .card:first-child{grid-column:1/-1}.grid-three{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:740px){.layout{display:block}.sidebar{display:none}.main{padding:9px 9px 92px;gap:10px}.top{padding:15px;min-height:76px}.device-name{font-size:19px}.device-head{gap:14px}.device-led{width:15px;height:15px;box-shadow:0 0 0 6px #d7f5e8}.version{font-size:11px}.card{padding:11px}.dashboard{gap:10px}.video-stage{aspect-ratio:4/3}.stack{gap:9px}.grid-three{gap:9px}.mini{min-height:98px}.mini strong{font-size:15px}.mobile-tabs{position:fixed;z-index:8;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid var(--border);box-shadow:0 -5px 20px #22334418;padding:9px 4px max(10px,env(safe-area-inset-bottom));justify-content:space-around}.mobile-tabs button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:5px;color:#68788c;min-width:55px;font-weight:600;font-size:11px}.mobile-tabs button.active{color:var(--blue)}.mobile-tabs button span{font-size:21px}}
+@media(max-width:440px){.actions{grid-template-columns:1fr 1fr}.actions button:last-child{display:none}.stack{grid-template-columns:1fr 1fr}.stack .details{font-size:12px}.grid-three{grid-template-columns:1fr 1fr}.grid-three>.card:last-child{grid-column:1/-1}}
+.brand-png{width:155px;max-width:100%;height:auto;display:block;object-fit:contain;border-radius:8px}
+.pilot-controls{margin-top:14px;border-top:1px solid var(--border);padding-top:12px}
+.pilot-controls h3{font-size:14px;margin:0 0 6px}.pilot-controls p{font-size:12px;color:#7b8998;margin:0 0 12px}
+.settings-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.settings-fields label{font-size:11px;color:#5c6f80;display:flex;flex-direction:column;gap:5px}
+.settings-fields select{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:9px 6px;background:white;color:#1c2b3c;font-size:13px}
+.settings-foot{display:flex;align-items:center;gap:12px;margin-top:11px;flex-wrap:wrap}
+.settings-foot #saveNotice{font-size:12px;color:#53647a}
+.storage-detail{font-size:12px;color:#5e7187;margin-top:8px;overflow-wrap:anywhere}
+@media(max-width:460px){.settings-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.settings-fields label:last-child{grid-column:1/-1}.brand-png{width:130px}}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand"><img src="/assets/tsp-logo.png" alt="Traffic Survey Partners" class="brand-png"></div>
+    <nav class="nav">
+      <button class="navbtn active" data-tab="live"><span class="ico">▣</span> Live View</button>
+      <button class="navbtn" data-tab="status"><span class="ico">◉</span> Status</button>
+      <button class="navbtn" data-tab="recordings"><span class="ico">▤</span> Recordings</button>
+      <button class="navbtn" data-tab="network"><span class="ico">≋</span> Network</button>
+      <button class="navbtn" data-tab="power"><span class="ico">ϟ</span> Power</button>
+      <button class="navbtn" data-tab="system"><span class="ico">⚙</span> System</button>
+      <div class="nav-divider"></div>
+      <button class="navbtn" data-tab="advanced"><span class="ico">⚒</span> Advanced</button>
+    </nav>
+    <div class="sidebar-end">TSP_Cam · Pilot build<br>Preview only · no recording</div>
+  </aside>
+  <main class="main">
+    <header class="top">
+      <div class="device-head"><span class="device-led"></span><div><div class="device-name" id="boxName">TSPCAM</div><div class="online"><i></i><span id="connection">Connected to camera panel</span></div></div></div>
+      <div class="version"><strong id="hostLabel">TSPCAM</strong><span id="version">pilot</span></div>
+    </header>
+
+    <section class="content active" id="tab-live">
+      <div class="dashboard">
+        <div class="card viewer">
+          <div class="video-stage">
+            <img id="cameraImage" alt="Live OV5647 preview (or unavailable placeholder)">
+            <span class="time-badge" id="cameraTime">--/--/---- --:--:--</span>
+            <span class="live-badge" id="previewBadge">STARTING</span>
+          </div>
+          <div class="preview-note" id="previewInfo">Waiting for real camera frames…</div>
+          <div class="actions">
+            <button class="action" id="snapshot" disabled>▣ Snapshot</button>
+            <button class="action record" disabled><i class="red-dot"></i>Recording unavailable</button>
+            <button class="action" id="fullscreen">⛶ Fullscreen</button>
+          </div>
+          <div class="pilot-controls"><h3>Camera settings</h3>
+            <p>Preview applies immediately; recording resolution is saved for the future MP4 recorder.</p>
+            <div class="settings-fields">
+              <label>Preview resolution<select id="previewResolution">
+                <option value="640x480">640 × 480</option><option value="800x600">800 × 600</option>
+                <option value="1280x720">1280 × 720</option></select></label>
+              <label>Preview FPS<select id="previewFPS">
+                <option value="1">1 FPS</option><option value="3">3 FPS</option><option value="5">5 FPS</option>
+              </select></label>
+              <label>Future recording resolution<select id="recordingResolution">
+                <option value="800x600">800 × 600</option>
+                <option value="1280x720">1280 × 720</option>
+                <option value="1280x960">1280 × 960</option>
+                <option value="1920x1080">1920 × 1080</option>
+              </select></label>
+            </div><div class="settings-foot">
+              <button id="saveCamera" class="action">Save settings</button><span id="saveNotice"></span>
+            </div>
+          </div>
+        </div>
+        <div class="stack">
+          <article class="card"><div class="card-title"><span class="ci">◉</span> Camera <span class="card-link">›</span></div>
+            <span class="value" id="cameraState">Awaiting preview</span>
+            <div class="details">
+              <span class="key">Preview</span><span class="val" id="previewMode">640 × 480 · 5 FPS</span>
+              <span class="key">Recording</span><span class="val">Not implemented</span>
+              <span class="key">Preview mode</span><span class="val">On demand</span>
+            </div>
+          </article>
+          <article class="card"><div class="card-title"><span class="ci">▣</span> Storage</div>
+            <span class="value" id="storageState">Checking…</span>
+            <div class="meter"><b id="storageBar"></b></div><span class="muted" id="storageFree">Checking USB mount</span><div class="storage-detail" id="storagePath">Detecting physical USB…</div><div class="storage-detail" style="border-top:1px solid var(--border);padding-top:10px;margin-top:10px">
+ <label for="storageSelector" style="font-weight:700;display:block;margin-bottom:6px">USB recording destination</label>
+ <select id="storageSelector" aria-label="Choose USB recording storage" style="width:100%;min-width:0;padding:10px 7px;border:1px solid #cbd5e1;background:white;border-radius:8px;color:var(--ink)"><option value="">Scanning drives…</option></select>
+ <button id="saveStorage" class="action" style="width:100%;margin-top:7px" disabled>Select this USB drive</button>
+ <div id="storageNotice" class="muted" style="font-size:12px;margin-top:7px">Connect USB to choose recording destination</div>
+ <div id="usbVolumeList" class="muted" style="font-size:11px;margin-top:8px;white-space:pre-line"></div>
+ </div>
+          </article>
+          <article class="card"><div class="card-title"><span class="ci">ϟ</span> Power</div>
+            <span class="value gray">No battery telemetry</span>
+            <div class="details"><span class="key">CPU temp</span><span class="val" id="temperature">—</span><span class="key">Throttled</span><span class="val" id="throttle">—</span></div>
+          </article>
+        </div>
+      </div>
+      <div class="grid-three">
+        <article class="card mini"><div class="card-title"><span class="ci">≋</span> Network</div><strong id="networkIp">—</strong><p id="networkDesc">Current panel connection</p></article>
+        <article class="card mini"><div class="card-title"><span class="ci">⚙</span> System</div><strong id="uptime">—</strong><p>System uptime</p></article>
+        <article class="card mini"><div class="card-title"><span class="ci">◷</span> RTC</div><strong id="rtc">—</strong><p>Detected RTC devices</p></article>
+      </div>
+      <article class="card wide"><div class="section-heading"><h2>Recent recordings</h2><small>Recording module coming later</small></div><div class="empty"><span style="font-size:24px">▤</span><strong>No recordings managed by TSP_Cam yet</strong><span>Continuous MP4 capture and file browsing will be implemented separately.</span></div></article>
+    </section>
+
+    <section class="content" id="tab-status"><article class="card s-card"><h2>Device status</h2><p>Real hardware diagnostics from this Raspberry Pi. No simulated readings.</p><div id="statusLines"></div></article></section>
+    <section class="content" id="tab-recordings"><article class="card s-card"><h2>Recordings</h2><p>Continuous H.264 capture and full-hour MP4 segmentation are not implemented yet. Existing footage is never deleted or modified by this pilot.</p><div class="empty">Recorder: not implemented</div></article></section>
+    <section class="content" id="tab-network"><article class="card s-card"><h2>Network</h2><p>Dashboard accessible from the Pi's local IP. Bluetooth PAN and emergency Wi-Fi AP will be integrated later.</p><div id="networkLines"></div></article></section>
+    <section class="content" id="tab-power"><article class="card s-card"><h2>Power</h2><p>Battery percentage and estimated runtime require supported telemetry hardware. No invented battery data.</p><div id="powerLines"></div></article></section>
+    <section class="content" id="tab-system"><article class="card s-card"><h2>System</h2><p>Actual Raspberry Pi service and RTC diagnostics.</p><div id="systemLines"></div></article></section>
+    <section class="content" id="tab-advanced"><article class="card s-card"><h2>More settings</h2><p>Quick links to technical information and diagnostics.</p><div class="actions"><button class="action" data-tab="network">≋ Network</button><button class="action" data-tab="power">ϟ Power</button><button class="action" data-tab="system">⚙ System</button></div></article><article class="card s-card"><h2>Advanced</h2><p>Recording configuration, RTC manual/auto switching, pairing and shutdown controls will be introduced after the underlying services exist.</p><pre class="log" id="advancedStatus">Fetching status…</pre></article></section>
+  </main>
+</div>
+<nav class="mobile-tabs" aria-label="Mobile navigation">
+  <button class="active" data-tab="live"><span>▣</span>Live</button><button data-tab="recordings"><span>▤</span>Files</button>
+  <button data-tab="status"><span>◉</span>Status</button><button data-tab="advanced"><span>⋯</span>More</button>
+</nav>
+<script>
+"use strict";
+var tab="live",latest=null,previewBusy=false,previewStarted=0,settingsLoaded=false;
+var selectedStorageDraft=null;
+function element(id){return document.getElementById(id)}
+function set(id,val){var e=element(id);if(e)e.textContent=val===null||val===undefined?"—":String(val)}
+function bytes(v){if(v===undefined||v===null)return "—";var u=["B","KB","GB","GB","TB"],n=Number(v),i=0;
+  u=["B","KB","MB","GB","TB"];while(n>=1024&&i<4){n/=1024;i++}return n.toFixed(i===0?0:1)+" "+u[i]}
+function uptime(n){if(!Number.isFinite(n))return "—";var d=Math.floor(n/86400),h=Math.floor(n%86400/3600),m=Math.floor(n%3600/60);return (d?d+"d ":"")+h+"h "+m+"m"}
+function line(label,value){var a=document.createElement("div");a.className="data-lines";
+  var x=document.createElement("span");x.textContent=label;var y=document.createElement("span");y.textContent=value===null||value===undefined?"—":String(value);a.append(x,y);return a}
+function lines(id,entries){var root=element(id);root.replaceChildren();entries.forEach(function(pair){root.append(line(pair[0],pair[1]))})}
+function activate(next){tab=next;document.querySelectorAll(".content").forEach(function(e){e.classList.toggle("active",e.id==="tab-"+tab)});
+ document.querySelectorAll("[data-tab]").forEach(function(e){e.classList.toggle("active",e.dataset.tab===tab)});
+ if(tab==="live")refreshPreview()}
+document.querySelectorAll("[data-tab]").forEach(function(b){b.addEventListener("click",function(){activate(b.dataset.tab)})});
+element("snapshot").addEventListener("click",function(){window.location.href="/api/snapshot.jpg"});
+element("fullscreen").addEventListener("click",function(){var e=element("cameraImage");if(e.requestFullscreen)e.requestFullscreen()});
+element("storageSelector").addEventListener("change",function(){
+ selectedStorageDraft=this.value;element("saveStorage").disabled=!this.value;
+});
+element("saveStorage").addEventListener("click",async function(){
+ var btn=element("saveStorage"),value=element("storageSelector").value;
+ if(!value)return;
+ btn.disabled=true;set("storageNotice","Saving selection…");
+ try{
+  var r=await fetch("/api/storage/select",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({volume_id:value})});
+  var response=await r.json();if(!r.ok)throw Error(response.error||"Selection rejected");
+  set("storageNotice","Saved. Mount service will check within about 30 seconds.");
+  selectedStorageDraft=null;await poll();
+ }catch(err){set("storageNotice","Selection failed: "+err.message);}
+ finally{btn.disabled=false}
+});
+element("saveCamera").addEventListener("click",async function(){
+ var btn=element("saveCamera");btn.disabled=true;set("saveNotice","Saving...");
+ try{var changes={preview_resolution:element("previewResolution").value,
+ preview_fps:Number(element("previewFPS").value),
+ recording_resolution:element("recordingResolution").value};
+ var r=await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(changes)});
+ var data=await r.json();if(!r.ok)throw Error(data.error||"Request failed");
+ set("saveNotice","Saved. Preview will reconnect; MP4 recorder is not installed.");
+ settingsLoaded=false;poll();
+ }catch(err){set("saveNotice","Error: "+err.message)}finally{btn.disabled=false}
+});
+function renderUsbVolumes(usb){
+ var volumes=Array.isArray(usb.volumes)?usb.volumes:[];
+ var select=element("storageSelector"), current=selectedStorageDraft||usb.selected_id||"";
+ select.replaceChildren();
+ var baseOption=new Option(volumes.length?"Choose a USB drive…":"No USB volumes detected","");
+ select.add(baseOption);
+ for(var i=0;i<volumes.length;i++){
+  var v=volumes[i];var display=v.display_name||v.label||v.source;
+  var title=display+" · "+(v.filesystem||"unknown format")+" · "+bytes(v.size_bytes)+" ("+v.source+")";
+  if(!v.selectable)title+=" — "+(v.read_only?"read-only":v.supported?"missing UUID":"unsupported format");
+  var option=new Option(title,v.id||"");option.disabled=!v.selectable;
+  select.add(option);
+ }
+ select.value=volumes.some(function(v){return v.id===current&&v.selectable})?current:"";
+ element("saveStorage").disabled=!select.value;
+ var summary=[];
+ for(var j=0;j<volumes.length;j++){
+  var disk=volumes[j],flag=disk.id===usb.selected_id?" [SELECTED]":"";
+  summary.push((disk.display_name||disk.source)+" · "+(disk.filesystem||"unformatted")+" · "+bytes(disk.size_bytes)+flag);
+ }
+ set("usbVolumeList",summary.join("\n")||"No USB volumes found");
+ if(usb.reason==="choose_volume")set("storageNotice","Multiple volumes found. Choose which one will be used for recordings.");
+ else if(usb.selection_mode==="selected_missing_or_duplicate")set("storageNotice","Previously selected USB missing or ambiguous. No automatic replacement.");
+ else if(usb.reason==="selected_not_mounted")set("storageNotice","Selected USB is waiting to be mounted.");
+ else if(usb.reason==="selected_not_writable")set("storageNotice","Selected USB is mounted but not writable by camera.");
+ else if(usb.recording_root)set("storageNotice","Chosen destination is ready for future recordings.");
+ else if(!volumes.length)set("storageNotice","No eligible USB filesystem. Check disk connection.");
+}
+
+function render(d){
+ latest=d;set("boxName",d.box_id==="UNASSIGNED"?"TSPCAM · Unassigned":d.box_id);set("hostLabel",d.hostname);
+ set("version",d.version);set("networkIp",window.location.hostname);set("uptime",uptime(d.uptime_seconds));
+ set("rtc",(d.rtc_devices||[]).length+" detected");set("temperature",d.cpu_temperature_c===null?"—":d.cpu_temperature_c+" °C");
+ set("throttle",d.throttled||"Unknown");var u=d.usb||{};
+ renderUsbVolumes(u);
+ set("storageState",u.mounted?(u.writable?"USB ready":"USB not writable"):(u.reason==="discovery_error"?"USB scan error":u.detected?"USB detected · select destination":"USB not detected"));
+ set("storageFree",u.mounted?bytes(u.free_bytes)+" free of "+bytes(u.total_bytes):
+  u.reason==="discovery_error"?"USB scan failed: "+(u.detail||"unknown error"):
+  u.reason==="usb_without_supported_filesystem"?"USB connected, unsupported or missing filesystem":
+  u.detected?"USB available but not mounted; check mount service":"No USB storage detected");
+ set("storagePath",u.recording_root?"Recording destination once recorder exists: "+u.recording_root:(u.mounted?
+ "Mounted: "+u.mount_path+" · not writable by TSP_Cam":u.detected?
+ "Detected: "+(u.devices||[]).map(x=>x.source).concat((u.hardware||[]).map(x=>x.source)).join(", ")+" · "+(u.reason||"unmounted"):
+ "Never fallback to SD"));
+ var cs=d.camera_settings||{};
+ if(!settingsLoaded&&cs.preview_resolution){
+ element("previewResolution").value=cs.preview_resolution;
+ element("previewFPS").value=String(cs.preview_fps);
+ element("recordingResolution").value=cs.recording_resolution;
+ settingsLoaded=true;}
+ set("previewMode",cs.preview_resolution?cs.preview_resolution.replace("x"," × ")+" · "+cs.preview_fps+" FPS":"—");
+ element("storageBar").style.width=u.mounted&&Number.isFinite(u.used_percent)?u.used_percent+"%":"0";
+ var p=d.preview||{};set("cameraState",p.live?"Preview available":(p.state==="error"?"Camera unavailable":p.state==="idle"?"Standby":"Starting preview"));
+ set("previewBadge",p.live?"LIVE":p.state==="error"?"ERROR":p.state==="idle"?"STANDBY":"WAIT");
+ element("previewBadge").classList.toggle("live",!!p.live);
+ set("previewInfo",p.live?"Live JPEG preview · up to "+(cs.preview_fps||5)+" FPS":p.error?"Camera error: "+p.error:
+  p.state==="idle"?"Preview sleeps after 15 seconds without viewers":"Starting camera; first frame may take several seconds");
+ element("snapshot").disabled=!p.live;
+ lines("statusLines",[["Unit",d.box_id],["Hostname",d.hostname],["Model/architecture",d.machine],["Uptime",uptime(d.uptime_seconds)],
+ ["CPU temperature",d.cpu_temperature_c===null?"Unknown":d.cpu_temperature_c+" °C"],["Throttling",d.throttled||"Unknown"],
+ ["Camera",p.state+" · "+(p.error||"no error")],["USB",u.mounted?u.source:(u.reason||"not mounted")],
+ ["USB devices",(u.devices||[]).map(x=>x.source+" "+(x.label||"")+(x.mountpoints||[]).join(",")).join("; ")||"None"],
+ ["USB hardware",(u.hardware||[]).map(x=>x.source).join("; ")||"None"],
+ ["USB diagnostic",u.reason||u.detail||"ok"],
+ ["Default recording target",u.recording_root||"Unavailable until writable USB is mounted"],
+ ["Recorder","Not implemented"]]);
+ lines("networkLines",[["Address used for panel",window.location.host],["Browser protocol",window.location.protocol],
+ ["Bluetooth PAN","Not implemented"],["Wi-Fi AP","Not implemented"],["Configured timezone",d.timezone_configured]]);
+ lines("powerLines",[["Battery telemetry","Not implemented"],["CPU temperature",d.cpu_temperature_c===null?"Unknown":d.cpu_temperature_c+" °C"],
+ ["Throttling",d.throttled||"Unknown"]]);
+ lines("systemLines",[["Version",d.version],["Hostname",d.hostname],["Architecture",d.machine],
+ ["RTC devices",(d.rtc_devices||[]).map(function(x){return x.device+" "+x.name+" "+(x.date||"")+" "+(x.time||"")}).join("; ")||"None detected"],
+ ["USB filesystem",u.filesystem||"Not mounted"],["USB free",bytes(u.free_bytes)],["Uptime",uptime(d.uptime_seconds)]]);
+ set("advancedStatus",JSON.stringify(d,null,2));
+ var t=new Date((d.time_unix||0)*1000);
+ set("cameraTime",t.toLocaleString("en-GB",{timeZone:d.timezone_configured||"UTC",hour12:false}).replace(",",""));
+}
+async function poll(){try{var r=await fetch("/api/status",{cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);
+ render(await r.json());set("connection","Camera panel online")}
+ catch(e){set("connection","Disconnected: "+e.message);set("previewInfo","Unable to contact camera web service");element("previewBadge").classList.remove("live");set("previewBadge","OFFLINE")}}
+function refreshPreview(){if(tab!=="live"||document.hidden||previewBusy)return;
+ previewBusy=true;previewStarted=Date.now();var img=element("cameraImage");img.src="/api/preview.jpg?t="+Date.now()}
+element("cameraImage").addEventListener("load",function(){previewBusy=false});
+element("cameraImage").addEventListener("error",function(){previewBusy=false;set("previewInfo","Preview request failed")});
+setInterval(function(){if(previewBusy&&Date.now()-previewStarted>8000)previewBusy=false;refreshPreview()},220);
+setInterval(poll,5000);poll();refreshPreview();
+</script>
+</body>
+</html>

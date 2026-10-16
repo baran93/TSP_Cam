@@ -1,0 +1,22 @@
+[Unit]
+Description=TSP_Cam LAN pilot dashboard and on-demand camera preview
+After=local-fs.target
+ConditionPathExists=/opt/tspcam/current/tspcam
+
+[Service]
+Type=simple
+User=tspcam
+Group=tspcam
+WorkingDirectory=/opt/tspcam/current
+Environment=TSPCAM_CONFIG=/etc/tspcam/config.toml
+ExecStart=/usr/bin/python3 -m tspcam web
+Restart=on-failure
+RestartSec=10s
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/tspcam
+
+[Install]
+WantedBy=multi-user.target

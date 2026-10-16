@@ -1,0 +1,5 @@
+# Phase 0: read-only diagnostics only. Never use the system SD as USB storage.
+box_id = "UNASSIGNED"
+usb_mount = "/media/tspcam"
+timezone = "Europe/London"
+web_port = 8765

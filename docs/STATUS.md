@@ -5,7 +5,7 @@ Every PR updates this file ([AGENTS.md](../AGENTS.md) §5.3).
 
 ## Phase
 
-**Design only (roadmap Phase 0).** No installer, recorder or panel code exists. Nothing has been tested on a Raspberry Pi Zero 2 W yet.
+**Phase 0 software pilot on actual owner Raspberry Pi Zero 2 W.** Diagnostics, local network dashboard, preview and USB discovery are implemented in unmerged PR #3. MP4 recorder is NOT implemented; sensor preview FPS/storage readiness require hardware revalidation.
 
 ## Current work
 
@@ -90,3 +90,37 @@ Proposed order; the owner assigns implementer and reviewer for each task.
 3. Hardware bring-up on one Zero 2 W + OV5647: run the read-only checklist from [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) and commit the results. Needs the owner with the hardware.
 4. Phase 0 code: Python package skeleton, tests, systemd unit stubs, read-only diagnostics command.
 5. Phase 1 recorder MVP: hardware H.264 to hourly MP4 at clock boundaries, autostart on USB, 48 h test.
+
+## PR #3 — Phase 0 Python foundation (proposed, stacked after PR #2)
+
+- Implementer: ChatGPT (GPT-6); reviewer: Claude; owner merges.
+- Adds `tspcam status`, periodic read-only diagnostics, localhost-only read-only web page, two systemd services, pilot one-command **local** install, Python unit tests and GitHub Actions CI.
+- Explicitly **not implemented**: camera recorder, hourly MP4, autostart capture, RTC writes, external authenticated web panel, BT PAN/Wi-Fi AP, trusted remote GitHub release bootstrap, signed OTA/rollback.
+- Next: merge PR #1 then #2, Claude reviews PR #3, pilot check on Zero 2 W, separately implement capture pipeline and signed stable-release delivery. No deployment to live surveys until hardware acceptance tests.
+
+
+### Owner pilot update — 2026-10-16, PR #3
+
+- Owner installed Phase 0 on a real Pi and found `/opt/tspcam/releases/pilot-be66a4e36d44` mode 0700, causing `tspcam status` and both systemd services to fail. Fixed installer to set final release directory mode 0755; also corrected a temporary-link filename typo, and added regression tests. Hardware re-test pending.
+- Owner explicitly requested **read-only LAN-accessible status dashboard without login for early testing**. The pilot web server now binds to `0.0.0.0:8765`, reachable via Pi LAN IP, not intended to be exposed to WAN. Production authentication remains planned. No recorder implemented.
+
+- Second real-pilot failure (2026-10-16): `tspcam status` returned permission denied for `/etc/tspcam/config.toml` when invoked as unprivileged `pi`. For owner-approved temporary **non-secret pilot config only**, installer now grants directory 0755 and config 0644, including repairing existing pilot installations. Corrected accidental JS-generated `.current.$` to `.current.$$` in the installer, with regression CI assertion.
+
+### Owner-requested UI pilot — 2026-10-16 (PR #3)
+
+- Added responsive technician dashboard based on the owner-provided mockup: navigation, real system/USB/RTC status, network address, snapshot button, visible nonfunctional/placeholder sections for unfinished features (no fake recording or fake battery %).
+- Real OV5647 preview prototype: Picamera2 imported on demand by `tspcam-web`; one camera instance per web process, 640x480 RGB888, JPEG approx 1 fps in RAM. Idle after 15 seconds without requests, then release camera hardware. Camera errors exposed in dashboard status and retried with backoff; preview is independent of (currently unimplemented) MP4 recorder. When a recorder is implemented, preview must consume shared recorder output rather than compete for the sensor.
+- Install pilot now attempts to install `python3-picamera2` and `python3-pil` via Raspberry Pi OS apt if missing. Add camera access groups to `tspcam`. Hardware run of live preview and power measurements pending. Installation can fail on OS images without compatible Raspberry Pi apt repositories.
+- LAN dashboard remains intentionally unauthenticated for this pilot by explicit owner request. No network port forwarding; signed releases/auth/production rollback still deferred.
+
+### Owner-requested USB/storage and UI pilot changes — 2026-10-16
+
+- Physical USB detection now uses `lsblk` with transport=usb and filesystem checks; an inserted drive is recognized even if the old `/media/tspcam` path was absent. An automount timer (every 30s) mounts one eligible unmounted USB filesystem under `/media/tspcam` without format or SD fallback; ambiguous disks are refused. Recorder remains unimplemented, so recording root is a proposed destination, not proof video is being saved.
+- Pilot recording profile stored as future-only setting; real preview resolutions 640x480/800x600/1280x720 and frame rates 1/3/5 FPS. Zero 2 W must be benchmarked for real achieved preview FPS and power. Settings persist in /var/lib/tspcam/settings.json, camera reopens for profile changes.
+- Replaced CSS faux logo with owner mockup-based PNG, served as a static asset. LAN pilot settings API uses JSON-only allowlist; authentication deferred by owner request. No format or recording writes to inserted USB.
+
+### Multi-drive storage choice implemented in PR #3 (2026-10-16, ChatGPT)
+
+- User explicitly requested broad USB filesystem inventory, visible disk name/label and selection when more than one storage device is connected. Backend now uses `lsblk --tree` (fixes child-partition omission), lists all USB volumes including unsupported formats, and distinguishes writable formats supported by Linux from display-only formats.
+- Technician selects a volume via panel; selected UUID/PARTUUID is persisted in `/var/lib/tspcam/selected-volume.json` and privileged mounting revalidates it. One supported USB volume defaults automatically, but multiple USB volumes require a selection. Missing selected disk **never** falls back to a different device/SD. Individual mountpoints prevent a second device from silently replacing another.
+- Mount service may create a dedicated `TSP_Cam` folder on the chosen USB; it does not format, delete, overwrite or alter existing user folders. No actual MP4 recorder implemented. Actual hardware behaviour (incl. NTFS driver and ext4 ownership) must be confirmed on owner's Pi.
