@@ -1,181 +1,279 @@
-"""Safe USB-media discovery and optional pilot automount.
+"""USB volume inventory, user selection and conservative mount service.
 
-Never use the OS SD card, a bind mount, or a merely existing directory
-as the recording destination. Detection is read-only; only the separate
-root-owned one-shot service may mount an unambiguous genuine USB volume.
+Devices from USB transport ONLY; no SD fallback. Discover any filesystem,
+offer recording only on compatible read/write Linux filesystems. Stable
+UUID/PARTUUID choices survive /dev/sda/b reassignment; ambiguous ids refuse.
+No formatting, filesystem repairs, unmounting or deletion is performed.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 
-FILESYSTEMS = {"vfat", "exfat", "ext4", "ntfs", "ntfs3", "fuseblk"}
-SYSTEM_MOUNTS = {"/", "/boot", "/boot/firmware", "/home", "/var", "/usr", "/tmp"}
-DEFAULT_MOUNT = Path("/media/tspcam")
-
-
-def _mounts(node: dict) -> list[str]:
-    vals = node.get("mountpoints")
-    if isinstance(vals, list):
-        return [s for s in vals if isinstance(s, str) and s]
-    val = node.get("mountpoint")
-    return [val] if isinstance(val, str) and val else []
-
-
-def enumerate_usb(lsblk_output: dict) -> list[dict]:
-    """Select only filesystem partitions or whole disks underneath TRAN=usb."""
-    devices = []
-    def scan(node, is_usb=False):
-        # OTG flash drives do not always report TRAN=usb on every Pi image.
-        # HOTPLUG on an sdX device is a second, conservative indicator.
-        name = node.get("path") or ""
-        usb = is_usb or node.get("tran") == "usb" or (
-            isinstance(name, str) and re.fullmatch(r"/dev/sd[a-z]+", name)
-            and node.get("hotplug") in (1, "1", True)
-        )
-        kind = node.get("type")
-        fs = node.get("fstype")
-        if usb and kind in ("part", "disk") and isinstance(name, str) and name.startswith("/dev/") and fs in FILESYSTEMS:
-            mounts = _mounts(node)
-            if not any(point in SYSTEM_MOUNTS or point.startswith("/boot/") for point in mounts):
-                devices.append({
-                    "source": name,
-                    "filesystem": fs,
-                    "label": node.get("label") or None,
-                    "uuid": node.get("uuid") or None,
-                    "mountpoints": mounts,
-                    "read_only": bool(node.get("ro", False)),
-                    "size_bytes": node.get("size"),
-                })
-        for child in node.get("children") or []:
-            if isinstance(child, dict):
-                scan(child, usb)
-    for node in lsblk_output.get("blockdevices") or []:
-        if isinstance(node, dict):
-            scan(node)
-    return devices
+# Writable formats depend on installed kernel/helper support.
+# Other types are still shown on the UI (read-only or driver unavailable).
+WRITE_FORMATS = {"vfat", "fat", "fat32", "exfat", "ext2", "ext3", "ext4",
+                 "ntfs", "ntfs3", "fuseblk", "xfs", "btrfs", "f2fs"}
+MOUNT_ROOT = Path("/media/tspcam-volumes")
+CHOICE_PATH = Path("/var/lib/tspcam/selected-volume.json")
+TIMEOUT = 7
+SYSTEM_MOUNTS = {"/", "/boot", "/boot/firmware", "/home", "/usr", "/var", "/tmp"}
+SAFE_ID = re.compile(r"^(uuid|partuuid):[A-Za-z0-9._:-]{1,128}$")
 
 
-def detected_hardware(data: dict) -> list[dict]:
-    """Show USB devices even without a recognised filesystem; never select these blindly."""
-    found = []
-    def scan(node, is_usb=False):
-        path = node.get("path") or ""
-        usb = is_usb or node.get("tran") == "usb" or (
-            isinstance(path, str) and re.fullmatch(r"/dev/sd[a-z]+", path)
-            and node.get("hotplug") in (1, "1", True)
-        )
-        if usb and node.get("type") == "disk":
-            found.append({"source": path, "transport": node.get("tran"),
-                          "size_bytes": node.get("size"),
-                          "partitions": [{"source": p.get("path"), "filesystem": p.get("fstype"),
-                                          "mountpoints": _mounts(p)}
-                                         for p in node.get("children") or [] if isinstance(p, dict)]})
-        for child in node.get("children") or []:
-            if isinstance(child, dict):
-                scan(child, usb)
+def mountpoints(node):
+    value = node.get("mountpoints")
+    if isinstance(value, list):
+        return [s for s in value if isinstance(s, str) and s]
+    point = node.get("mountpoint")
+    return [point] if isinstance(point, str) and point else []
+
+
+def _usb_root(node):
+    """USB bus transport, or removable/hotplug SCSI disk, not SD mmcblk."""
+    name = node.get("path") or ""
+    return node.get("tran") == "usb" or (
+        isinstance(name, str) and bool(re.fullmatch(r"/dev/sd[a-z]+", name))
+        and node.get("hotplug") in (True, 1, "1")
+    )
+
+
+def _id(node):
+    uuid = node.get("uuid")
+    partuuid = node.get("partuuid")
+    for kind, value in (("uuid", uuid), ("partuuid", partuuid)):
+        if isinstance(value, str) and SAFE_ID.fullmatch(f"{kind}:{value}"):
+            return f"{kind}:{value}"
+    return None
+
+
+def volume_inventory(data):
+    """Visible entries include unsupported/blank volumes for diagnostics."""
+    volumes = []
+    hardware = []
+
+    def visit(node, usb=False, disk_meta=None):
+        path = node.get("path")
+        is_disk = node.get("type") == "disk"
+        usb = usb or (is_disk and _usb_root(node))
+        if not usb:
+            return
+        if is_disk:
+            disk_meta = {"device": path, "model": node.get("model"),
+                         "vendor": node.get("vendor"),
+                         "serial": node.get("serial"),
+                         "size_bytes": node.get("size")}
+            hardware.append(disk_meta)
+        children = [x for x in node.get("children") or [] if isinstance(x, dict)]
+        # For a partitioned disk: show each partition, not partition-table only.
+        if node.get("type") == "part" or (is_disk and not children):
+            if not isinstance(path, str) or not path.startswith("/dev/"):
+                return
+            points = mountpoints(node)
+            if any(p in SYSTEM_MOUNTS or p.startswith("/boot/") for p in points):
+                return
+            fs = (node.get("fstype") or "").lower()
+            supported = fs in WRITE_FORMATS
+            volumes.append({
+                "id": _id(node), "source": path, "label": node.get("label") or "",
+                "filesystem": fs or None, "partuuid": node.get("partuuid"),
+                "uuid": node.get("uuid"), "size_bytes": node.get("size"),
+                "mountpoints": points, "read_only": bool(node.get("ro")),
+                "supported": supported, "disk": disk_meta,
+                "reason": None if supported else ("missing_filesystem" if not fs else "unsupported_filesystem"),
+            })
+        for child in children:
+            visit(child, usb, disk_meta)
+
     for item in data.get("blockdevices") or []:
         if isinstance(item, dict):
-            scan(item)
-    return found
+            visit(item)
+    return volumes, hardware
 
 
-def inspect_usb(config_mount: Path, *, lsblk_data: dict | None = None) -> dict:
-    """Discover physical USB disks even when mounted elsewhere (or nowhere)."""
+def scan():
+    try:
+        # --tree prevents flattened lsblk JSON, where partitions silently vanished.
+        p = subprocess.run([
+            "lsblk", "--json", "--bytes", "--tree",
+            "--output", "NAME,PATH,TYPE,TRAN,HOTPLUG,FSTYPE,MOUNTPOINTS,RO,SIZE,LABEL,UUID,PARTUUID,MODEL,VENDOR,SERIAL"
+        ], capture_output=True, text=True, timeout=TIMEOUT, check=False)
+        if p.returncode:
+            raise RuntimeError((p.stderr or "lsblk failed")[:180])
+        return json.loads(p.stdout), None
+    except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
+        return None, str(exc)[:180]
+
+
+def selected_id(path=CHOICE_PATH):
+    try:
+        data = json.loads(Path(path).read_text("utf-8"))
+        value = data.get("volume_id")
+        return value if isinstance(value, str) and SAFE_ID.fullmatch(value) else None
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def save_selection(volume_id, *, choice_path=CHOICE_PATH):
+    """HTTP code verifies volume is actually in present inventory first."""
+    if not isinstance(volume_id, str) or not SAFE_ID.fullmatch(volume_id):
+        raise ValueError("Volume must have a stable UUID or PARTUUID")
+    dest = Path(choice_path)
+    dest.parent.mkdir(mode=0o750, parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=".volume-choice-", dir=dest.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump({"volume_id": volume_id}, handle)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(tmp, 0o640)
+        os.replace(tmp, dest)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
+def _selected(volumes, choice):
+    # A saved choice must never fall back to a different USB disk.
+    if choice:
+        matches = [v for v in volumes if v["id"] == choice]
+        return (matches[0], "selected") if len(matches) == 1 else (
+            None, "selected_missing_or_duplicate")
+    # Exactly one eligible volume: convenient automatic choice.
+    eligible = [v for v in volumes if v["supported"] and not v["read_only"]]
+    if len(volumes) == 1 and len(eligible) == 1:
+        return eligible[0], "automatic_single"
+    return None, "choose_volume" if volumes else "no_usb_volume"
+
+
+def _mounted_path(vol):
+    return next((p for p in vol["mountpoints"]
+                 if os.path.ismount(p) and Path(p).is_dir()), None)
+
+
+def _volume_info(v):
+    """Copy user-facing metadata while keeping stored internal data immutable."""
+    return dict(v, display_name=v["label"] or (v["disk"] or {}).get("model") or v["source"],
+                selectable=bool(v["supported"] and not v["read_only"] and v["id"]),
+                mounted=bool(_mounted_path(v)))
+
+
+def inspect_usb(config_mount=None, *, lsblk_data=None, choice=None):
+    """Return full USB inventory and the one selected recording destination."""
     if lsblk_data is None:
-        try:
-            p = subprocess.run(
-                ["lsblk", "-J", "-b", "-o", "PATH,TYPE,TRAN,HOTPLUG,FSTYPE,MOUNTPOINTS,RO,SIZE,LABEL,UUID"],
-                capture_output=True, text=True, timeout=4, check=False,
-            )
-            if p.returncode:
-                raise RuntimeError(p.stderr.strip()[:160] or "lsblk failed")
-            lsblk_data = json.loads(p.stdout)
-        except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
+        lsblk_data, error = scan()
+        if error:
             return {"detected": False, "mounted": False, "reason": "discovery_error",
-                    "detail": str(exc)[:160], "devices": [], "recording_root": None}
-    disks = enumerate_usb(lsblk_data)
-    hardware = detected_hardware(lsblk_data)
-    if not disks:
-        reason = "usb_without_supported_filesystem" if hardware else "no_usb_block_device"
-        return {"detected": bool(hardware), "mounted": False, "reason": reason,
-                "devices": [], "hardware": hardware, "recording_root": None}
-    # A preferred mount path is trusted only when it belongs to a real USB disk.
-    candidates = [d for d in disks if any(os.path.ismount(mp) and Path(mp).is_dir() for mp in d["mountpoints"])]
-    preferred = [d for d in candidates if str(config_mount) in d["mountpoints"]]
-    preferred += [d for d in candidates if str(DEFAULT_MOUNT) in d["mountpoints"] and d not in preferred]
-    if not preferred and len(candidates) == 1:
-        preferred = candidates
-    if len(preferred) != 1:
-        reason = "multiple_usb_volumes" if len(disks) > 1 else ("not_mounted" if disks else "no_usb_storage")
-        return {"detected": bool(disks), "mounted": False, "reason": reason,
-                "devices": disks, "hardware": hardware, "recording_root": None}
-    item = preferred[0]
-    mount = str(config_mount) if str(config_mount) in item["mountpoints"] else (
-        str(DEFAULT_MOUNT) if str(DEFAULT_MOUNT) in item["mountpoints"] else item["mountpoints"][0]
-    )
+                    "detail": error, "devices": [], "hardware": [],
+                    "recording_root": None, "volumes": [], "selection_mode": "error"}
+    else:
+        error = None
+    volumes, hardware = volume_inventory(lsblk_data)
+    chosen_id = choice if choice is not None else selected_id()
+    vol, mode = _selected(volumes, chosen_id)
+    result = {
+        "detected": bool(hardware), "mounted": False, "writable": False,
+        "reason": mode, "selected_id": vol["id"] if vol else chosen_id,
+        "selection_mode": mode, "devices": volumes, "hardware": hardware,
+        "volumes": [_volume_info(v) for v in volumes],
+        "recording_root": None,
+    }
+    if vol is None:
+        return result
+    result.update(source=vol["source"], label=vol["label"], filesystem=vol["filesystem"],
+                  uuid=vol["uuid"], partuuid=vol["partuuid"])
+    point = _mounted_path(vol)
+    if point is None:
+        result["reason"] = "selected_not_mounted"
+        return result
+    result.update(mounted=True, mount_path=point)
     try:
-        st = os.statvfs(mount)
+        st = os.statvfs(point)
         total = st.f_blocks * st.f_frsize
-        free = st.f_bavail * st.f_frsize
         used = max(0, total - st.f_bfree * st.f_frsize)
-        writable = bool(not item["read_only"] and not st.f_flag & os.ST_RDONLY and os.access(mount, os.W_OK))
-        return {"detected": True, "mounted": True, "source": item["source"],
-                "filesystem": item["filesystem"], "label": item["label"],
-                "uuid": item["uuid"], "mount_path": mount,
-                "recording_root": mount if writable else None,
-                "writable": writable, "reason": None if writable else "no_write_permission",
-                "free_bytes": free, "total_bytes": total,
-                "used_bytes": used, "used_percent": round(100 * used / total, 1) if total else None,
-                "devices": disks, "hardware": hardware}
+        free = st.f_bavail * st.f_frsize
+        result.update(total_bytes=total, free_bytes=free, used_bytes=used,
+                      used_percent=round(100 * used / total, 1) if total else None)
+        # Pilot: don't treat root privileges as evidence that tspcam can write.
+        folder = Path(point) / "TSP_Cam"
+        if folder.is_dir() and not folder.is_symlink():
+            target = folder
+        else:
+            target = Path(point)
+        writable = (not vol["read_only"] and vol["supported"] and not (st.f_flag & os.ST_RDONLY)
+                    and os.access(target, os.W_OK))
+        result["writable"] = bool(writable)
+        result["recording_root"] = str(target) if writable else None
+        result["reason"] = None if writable else "selected_not_writable"
     except OSError as exc:
-        return {"detected": True, "mounted": False, "reason": "mount_stat_failed",
-                "detail": str(exc)[:160], "devices": disks, "hardware": hardware, "recording_root": None}
+        result["reason"] = "storage_stat_error"
+        result["detail"] = str(exc)[:180]
+    return result
 
 
-def ensure_mount(target: Path = DEFAULT_MOUNT) -> str:
-    """Root-only pilot automount, never formats or modifies an existing mount."""
+def ensure_mount(*, choice_path=CHOICE_PATH):
+    """Root mount service; never blindly mounts or alters arbitrary user disk."""
     if os.geteuid() != 0:
-        return "Mount agent requires root"
-    state = inspect_usb(target)
-    if state["mounted"]:
-        return "USB is already mounted: " + state["mount_path"]
-    disks = state["devices"]
-    if len(disks) != 1:
-        return "No single eligible USB filesystem; leaving storage unchanged (" + state.get("reason", "unknown") + ")"
-    disk = disks[0]
-    if disk["read_only"]:
-        return "USB filesystem is read-only; refusing to mount for recording"
-    if disk["mountpoints"]:
-        return "USB already has a mount; refusing duplicate mount"
-    if not re.fullmatch(r"/dev/[A-Za-z0-9_./-]+", disk["source"]):
-        return "Unexpected USB path; refusing"
-    if target.is_symlink() or (target.exists() and (not target.is_dir() or any(target.iterdir()))):
-        return "Target is not an empty plain directory; refusing"
-    target.mkdir(parents=True, exist_ok=True)
+        return "root required"
+    data, error = scan()
+    if error:
+        return "discovery_error: " + error
+    volumes, _ = volume_inventory(data)
+    vol, mode = _selected(volumes, selected_id(choice_path))
+    if vol is None:
+        return mode + "; not mounting anything"
+    if not vol["supported"] or vol["read_only"]:
+        return "Selected disk is not writable/mountable"
+    existing = _mounted_path(vol)
+    if existing:
+        return "Already mounted " + vol["source"] + " at " + existing
+    # If it has another reported mountpoint, do not create a duplicate mount.
+    if vol["mountpoints"]:
+        return "Reported mounted elsewhere, awaiting mount availability"
+    source = vol["source"]
+    # Only kernel-generated block nodes, never user-given strings or arbitrary paths.
+    if not re.fullmatch(r"/dev/(sd[a-z]+[0-9]*|nvme[0-9]+n[0-9]+p?[0-9]*)", source):
+        return "Unexpected device path; refused"
+    if not vol["id"]:
+        return "No stable filesystem/partition identifier; refused automount"
+    # Each device gets a stable independent mountpoint: no unmount-on-switch.
+    digest = hashlib.sha256(vol["id"].encode("ascii")).hexdigest()[:16]
+    root = MOUNT_ROOT
+    target = root / ("usb-" + digest)
+    if root.is_symlink() or target.is_symlink():
+        return "Unsafe mount directory, refused"
+    root.mkdir(mode=0o755, parents=True, exist_ok=True)
+    if target.exists() and (not target.is_dir() or any(target.iterdir())):
+        return "Mount directory is nonempty, refused"
+    target.mkdir(mode=0o755, exist_ok=True)
     if os.path.ismount(target):
-        return "Target already mounted"
+        return "Already mounted " + str(target)
     options = ["nosuid", "nodev", "noexec", "rw"]
-    if disk["filesystem"] in {"vfat", "exfat", "ntfs", "ntfs3"}:
+    if vol["filesystem"] in {"vfat", "fat", "fat32", "exfat", "ntfs", "ntfs3", "fuseblk"}:
         import pwd
-        identity = pwd.getpwnam("tspcam")
-        options.extend([f"uid={identity.pw_uid}", f"gid={identity.pw_gid}", "umask=0022"])
+        user = pwd.getpwnam("tspcam")
+        options.extend([f"uid={user.pw_uid}", f"gid={user.pw_gid}", "umask=0022"])
+    # Confirm actual block node exists. No fallback to mounting a directory.
+    if not Path(source).is_block_device():
+        return "Block device disappeared before mount"
     try:
-        p = subprocess.run(["mount", "-o", ",".join(options), "--",
-                            disk["source"], str(target)], capture_output=True, text=True, timeout=12, check=False)
+        call = subprocess.run(
+            ["mount", "-o", ",".join(options), "--", source, str(target)],
+            capture_output=True, text=True, timeout=15, check=False)
     except (OSError, subprocess.TimeoutExpired) as exc:
-        return "Mount failed: " + str(exc)[:160]
-    if p.returncode:
-        return "Mount failed: " + p.stderr.strip()[:200]
-    return "Mounted " + disk["source"] + " on " + str(target)
+        return "mount_error: " + str(exc)[:160]
+    if call.returncode:
+        return "mount_error: " + call.stderr.strip()[:180]
+    return "Mounted " + source + " at " + str(target)
 
 
-def main() -> int:
-    result = ensure_mount()
-    print("TSP_Cam USB: " + result)
+def main():
+    print("TSP_Cam storage: " + ensure_mount())
     return 0
 
 
