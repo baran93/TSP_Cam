@@ -1,5 +1,5 @@
 # TSP_Cam — MASTER IMPLEMENTATION PLAN
-Status: planning baseline, 2026-10-08. No runtime has been deployed or tested yet.
+Status: planning baseline, 2026-10-08; aligned with [DECISIONS.md](DECISIONS.md) on 2026-10-16. No runtime has been deployed or tested yet. Decisions and [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) override this plan where they differ ([AGENTS.md](../AGENTS.md) §4).
 
 ## Mission
 Replace MotionEye on TSP PiCam (Raspberry Pi Zero 2 W) with a robust, low-overhead, offline-first field recorder. The recorder and video evidence take precedence over all network, browser, update, and synchronization workloads. Keep the first version lean and test on real hardware before fleet adoption.
@@ -30,9 +30,9 @@ Reduce daemon count if measurements show 512 MB RAM pressure; separation is logi
 
 ## Video pipeline
 - Start by proving plain hardware H.264 encode (no overlay/preview) at 1280x960@30 and 1080p30 to external USB for >48h. Record FOV, actual timestamps/FPS, USB integrity and 512MB RAM load.
-- Build **in-frame overlay**: bottom right timestamp (OCR-recognizable), TSP logo and Box number, white on dark semi-transparent background. Overlay can render static elements once and update timestamp every second, but compositing may still cost per frame; benchmark on Pi Zero 2 W. Validate OCR across 800x600, 720p and 1080p with real AI; avoid moving stamp without OCR tests.
+- Build **in-frame overlay** (D11): bottom-right corner with date, time (OCR-recognizable), TSP logo and Box number. Glyph style (outline vs background box) is open — see [STATUS.md](STATUS.md). Overlay can render static elements once and update timestamp every second, but compositing may still cost per frame; benchmark on Pi Zero 2 W. Validate OCR across 800x600, 720p and 1080p with real AI; avoid moving stamp without OCR tests.
 - Initial preview: low-res single still/JPEG 320x180 for 16:9, 320x240 for 4:3; on-demand 1/2/5fps capped, no unbounded queues, release camera requests promptly, drop stale frames, viewer timeout ~2min. Prioritize main encode and verify no capture loss. Test alternatives if MJPEG is too heavy on Zero 2 W.
-- Logical recordings: 60min by default, configurable 15/30/60. Evaluate Picamera2 SplittableOutput with PyavOutput for I-frame-safe segment switches (no camera restart); explicitly test power loss recovery, finalized MP4, fragmented MP4/TS alternatives and frame timestamps. If resilience needs shorter physical segments, expose logical 60min grouping in UI and validate the TSP office workflow before changing physical file expectations. Never block capture during browse/download.
+- Recording files (D8): physical MP4 files split at full wall-clock hours in the configured local timezone; the first file may be shorter; not configurable. Evaluate Picamera2 SplittableOutput with PyavOutput for I-frame-safe switches without camera restart. Explicitly test power-loss recovery with the office MP4 repair tool, frame timestamps, and DST/clock changes. Fragmented MP4/TS are laboratory comparisons only; any change to the production container or file length requires the owner's approval. Never block capture during browse/download.
 - Explicit missing USB policy (alert, retry) — no surprise write to boot SD. Mount by UUID and verify actual physical volume.
 
 ## Storage and technician file manager
@@ -43,7 +43,7 @@ Reduce daemon count if measurements show 512 MB RAM pressure; separation is logi
 - Display remaining recording hours by profile based on actual filesystem free bytes, actual profile bitrate and safety headroom, calibrate from observed segment sizes. Clearly label estimate.
 
 ## Time, logs and health
-- Boot system clock from verified RTC; synchronize using NTP through Android tether when available; update RTC and record time jumps. Derive overlay timestamp from capture metadata/monotonic-to-UTC mapping (not time of callback execution); log DST/timezone. Recording should report TIME INVALID when RTC implausible (define explicit start/block policy before production).
+- Boot system clock from verified RTC; synchronize using NTP through Android tether when available; update RTC and record time jumps. Derive overlay timestamp from capture metadata/monotonic-to-UTC mapping (not time of callback execution); log DST/timezone. When RTC time is implausible, keep recording to preserve evidence, report TIME INVALID in the panel and logs, and reconcile once time becomes reliable ([FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) *Timekeeping*).
 - Append compact, bounded crash-surviving events immediately on OS drive; rotate/export a consolidated per-day JSONL log to USB hourly and when reconnected. USB audit requires local surviving record.
 - Check not just systemd status: actual frame/encoded-byte counter, file growing, USB mounted/write health, zero byte recordings, RTC, CPU temperature, RAM, undervoltage indicators, USB disconnects. Retry capture with bounded backoff.
 - Recorder never waits for network, Bluetooth pairing, GitHub or TSP OS.
@@ -80,14 +80,8 @@ P6: TSP OS sync, Unit records and rollout tooling.
 Battery telemetry / timed power / optional autofocus and optical zoom are modular future work, not pilot blockers.
 
 ## Unresolved items / measured decisions
-- Which actual RTC chip, USB adapter/drive models, and boot SD capacity; probe on unit.
-- OV5647 sensor/encoder profile and real FOV, particularly legacy 800x600.
-- Which container/segment strategy gives both crash safety and Windows office compatibility.
-- Overlay implementation cost at 1080p30; if expensive, compare GPU/compositor options or simpler burned-in glyphs.
-- Reliability of Android PAN across technicians' phone models, and whether Wi-Fi AP simultaneous Bluetooth is stable.
-- Safe recovery physical trigger for extending AP window if Bluetooth fails.
-- Update integrity/signing service and read-only release delivery architecture for private repo.
-- Objective acceptance metrics (max gap, frame loss, current draw) set after baseline hardware test.
+
+Tracked in one place: [STATUS.md](STATUS.md) (*Open questions* and *Pending hardware measurements*).
 
 ## Critical review
 
@@ -97,17 +91,6 @@ Before implementation, review [TECHNICAL_RISK_AUDIT.md](TECHNICAL_RISK_AUDIT.md)
 
 See [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) for the researched production candidate: distro libcamera/V4L2 H.264, Picamera2 and PyavOutput/SplittableOutput, NetworkManager/BlueZ, bounded systemd monitoring, and rejected alternatives. These remain benchmark candidates until proven on a real OV5647 Zero 2 W.
 
-## Binding field operation requirements (2026-10-08)
+## Binding decisions
 
-[FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) overrides earlier exploratory alternatives on these matters:
-- Begin recording automatically **on boot once usable USB is mounted**, or on later USB insertion; never depend on phone/panel.
-- Preserve **physical hourly MP4 files** compatible with the TSP office's repair workflow; do not deploy shorter physical clips or a different container without explicit agreement and field compatibility tests. **Latest decision: physical MP4 files rotate at full wall-clock hours in the configured timezone; the first file after boot/start may be shorter. At the boundary, split on a suitable keyframe without stopping capture.**
-- **No overwrites, no circular deletion.** On USB full -> alarm and stop. Use unique collision-resistant filenames even after RTC changes and reboot.
-- Timestamp AUTO versus MANUAL mode is persisted. MANUAL must not be overwritten by background NTP; explicit set time updates system clock and hardware RTC. AUTO can use internet NTP over Android PAN and save to RTC, phone time comparison in authenticated panel only warns unless user confirms correction.
-- Technician checks low-FPS view, active filename and real recording progress, as well as RTC status/clock mismatch.
-- **Power Down powers off the complete Pi**, after recording close and buffered writes are flushed; do not imply it cuts external battery power.
-
-
-## Segment rotation decision
-
-Latest operator decision 2026-10-08 supersedes elapsed-time rotation: **split at full local clock hours**. Start 14:17 -> first file until ~15:00, then ~15:00–16:00. Preserve MP4 repair/office workflow, prohibit overwrite, handle repeated/changed local time and DST with unique filenames and audited clock corrections. Power Down/interruption can end a file early. See [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md).
+The owner's decisions in [DECISIONS.md](DECISIONS.md) and the operational contract in [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) are binding for this plan, in particular: autostart on working USB (D6), no overwrite or automatic deletion (D7), MP4 split at full wall-clock hours (D8), AUTO/MANUAL clock modes (D9), full-Pi Power Down (D10) and the bottom-right stamp (D11).

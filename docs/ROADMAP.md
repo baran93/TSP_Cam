@@ -1,6 +1,6 @@
 # TSP_Cam delivery roadmap
 
-Authoritative specifications: [MASTER_PLAN](MASTER_PLAN.md), [FIELD_REQUIREMENTS](FIELD_REQUIREMENTS.md), [INSTALL_AND_UPDATES](INSTALL_AND_UPDATES.md).
+Phase plan only. Binding decisions: [DECISIONS.md](DECISIONS.md); current progress and next steps: [STATUS.md](STATUS.md); document precedence: [AGENTS.md](../AGENTS.md) §4.
 
 ## Phase 0 — OS and diagnostics
 - [x] Define project architecture and acceptance gates.
@@ -29,11 +29,13 @@ Authoritative specifications: [MASTER_PLAN](MASTER_PLAN.md), [FIELD_REQUIREMENTS
 - [ ] Files search/browse/download with pagination.
 - [ ] USB filesystem identify, format suggestion and guarded exFAT format.
 - [ ] Recording hours estimate for each profile.
+- [ ] Simple installation self-test (READY checklist: live frame, file growing, RTC vs phone time, USB mount and free hours, undervoltage) — required by the product brief.
 - [ ] One-click diagnostics export and full-system safe Power Down.
 
 ## Phase 4 — Field connectivity
 - [ ] Android Bluetooth PAN plus temporary Internet.
-- [ ] 15-minute per-boot Wi-Fi AP with unique credentials **plus service recovery after 15min without rebooting capture**.
+- [ ] Wi-Fi AP automatically on for 15 minutes after every boot, with unique credentials (D3).
+- [ ] Only if the owner adopts it (Q4): extend or re-enable the AP after 15 minutes without rebooting capture.
 - [ ] Protected local access, pairing and disconnection recovery.
 
 ## Phase 5 — Installer and OTA

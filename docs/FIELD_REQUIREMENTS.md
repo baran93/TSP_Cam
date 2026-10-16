@@ -1,15 +1,15 @@
 # Field camera requirements — 2026-10-08
 
-Status: initial product assumptions; hardware validation required.
+Status: initial product assumptions; hardware validation required. Aligned with [DECISIONS.md](DECISIONS.md) on 2026-10-16; decisions take precedence ([AGENTS.md](../AGENTS.md) §4).
 
 ## Hardware
 - Raspberry Pi Zero 2 W with OV5647 5MP sensor.
 - Continuous capture; **no motion detection**.
-- Test profiles: 800x600@25/30, 1280x720@25/30, 1920x1080@25/30. Optionally test 720p60.
-- Target default: 1080p30 if 24-hour reliability, image quality and battery-life testing pass; otherwise 720p30.
-- Prefer hardware H.264 through rpicam/libcamera. Preview disabled except on demand.
-- **Production standard: physical MP4 files align to full clock hours in the configured site timezone.** First file after mid-hour boot may be shorter; subsequent files normally cover one clock hour. This supersedes earlier elapsed-3600-second rotation proposals; do not substitute 15/30-minute clips in production without explicit future approval.
-- Prefer MP4 deliverables, but verify crash safety and segment integrity; raw H.264 + remux without re-encoding is an option. Use --inline with rpicam-vid --segment if that backend is selected.
+- Test profiles: 800x600@25/30, 1280x960@30, 1280x720@25/30, 1920x1080@25/30. Offer 720p60 only if a matching sensor mode and sustained FPS are verified on hardware ([TECHNICAL_RISK_AUDIT.md](TECHNICAL_RISK_AUDIT.md) item 1).
+- Default profile: **not decided yet.** Chosen after field-of-view, OCR and 24–48 h tests; OV5647 1080p is centre-cropped, 1280x960 keeps the full field of view. See [STATUS.md](STATUS.md), open questions.
+- Hardware H.264 through libcamera: Picamera2 as the recorder, `rpicam-vid` for diagnostics only ([RECOMMENDED_STACK.md](RECOMMENDED_STACK.md)). Preview disabled except on demand.
+- **Production standard (D8): physical MP4 files split at full wall-clock hours in the configured site timezone.** The first file after a mid-hour start may be shorter; subsequent files normally cover one clock hour. Segment length is not configurable.
+- Verify MP4 crash safety, segment integrity and repair with the office MP4 tool. Raw H.264, fragmented MP4 and MPEG-TS are laboratory comparisons only, not production options without the owner's approval.
 
 ## Storage
 - Default: mounted USB drive. Optional destination: microSD selected from local panel.
@@ -26,16 +26,17 @@ Status: initial product assumptions; hardware validation required.
 - Use UTC machine-readable timestamps and preserve local/field time for display. Track clock corrections.
 
 ## Connectivity
-- Bluetooth primary for setup, diagnostics and temporary Internet via technician's phone; validate PAN/tethering behavior by Android/iPhone version.
-- Emergency Wi-Fi access point automatically active during first **15 minutes after every boot**, with unique SSID and strong unique password.
-- AP auto-off after 15 minutes, extendable from authenticated panel and re-openable through a documented physical service/recovery method.
+- Bluetooth primary for setup, diagnostics and temporary Internet via technician's phone; validate PAN/tethering behavior by Android phone model and OS version (technicians use Android, D5).
+- Emergency Wi-Fi access point automatically active during the first **15 minutes after every boot**, regardless of Bluetooth or phone state (D3), with unique SSID and strong unique password.
+- AP switches off automatically after 15 minutes.
+- **Not decided (Q4 in [STATUS.md](STATUS.md)):** extending the AP from the authenticated panel, or re-opening it later without a reboot (e.g. a documented physical method). These are proposals from the risk audit, not requirements.
 - Wi-Fi and Bluetooth can coexist but need field testing for radio/power interference on Zero 2 W.
 - Wi-Fi AP should be access-restricted; no default shared fleet-wide password.
 - Networking and panel crashes may **never** stop local recording.
 
 ## Technician UX
 - Mobile-first minimal screen: camera ID, RECORDING/ERROR state, recent segment, USB presence/space, RTC/time, temperature, Internet/Bluetooth.
-- Configurable resolution, FPS, bitrate preset, segment length and target storage.
+- Configurable resolution, FPS, bitrate preset and target storage. Segment length is fixed by D8.
 - Preview on demand, with explicit timeout to reduce CPU/power.
 - Safe reboot/shutdown and service controls with confirmation.
 - Large plain-language alerts: NO USB, CAMERA ERROR, NOT RECORDING, RTC ERROR.
@@ -43,7 +44,7 @@ Status: initial product assumptions; hardware validation required.
 - Tie each PiCam identity to central TSP OS Unit (single source of truth).
 
 ## Acceptance criteria
-1. 24-hour unattended recording test at 720p30 and 1080p30; count gaps/dropped frames.
+1. 24-hour unattended recording test at 1280x960@30, 720p30 and 1080p30; count gaps/dropped frames.
 2. Measure CPU, temperature, power draw and battery runtime on Zero 2 W.
 3. Boot Wi-Fi AP, pair/connect Bluetooth, test phone tethering, verify Wi-Fi auto-off at 15 minutes.
 4. Physically remove USB, kill capture process, disconnect phone and cut power; verify recovery behavior and readable previous segments.
@@ -51,7 +52,7 @@ Status: initial product assumptions; hardware validation required.
 
 ## Storage duration estimator (technician panel)
 - Read actual available free space using filesystem statistics (`statvfs` / `df`) on the configured mounted recording volume, not the nominal USB size.
-- Display estimated available recording hours beside every offered recording profile (800x600, 720p, 1080p) and refresh when USB or profile/settings change.
+- Display estimated available recording hours beside every offered recording profile (800x600, 1280x960, 720p, 1080p) and refresh when USB or profile/settings change.
 - Use the bitrate associated with each profile, **not resolution alone**; H.264 file size depends on bitrate, FPS, scene motion and encoder settings.
 - Formula: `hours = available_bytes * 8 / (bitrate_bits_per_sec * 3600)`, adjusted for container overhead and a configurable storage safety reserve.
 - Label values as **estimates**, not guarantees. Prefer calibration using observed recent segment sizes and use the lower (more conservative) prediction when actual bitrate differs from nominal.
@@ -65,15 +66,15 @@ Status: initial product assumptions; hardware validation required.
 - Bluetooth transfer/playback of full bitrate videos is not guaranteed; use low-bandwidth thumbnails or short preview clips and optional local download. Never scan entire USB on each page load; use paginated browsing.
 - Prevent path traversal and limit reads to configured approved recording roots.
 
-## Compatibility stamp / OCR requirement
-- Existing MotionEye overlay format is an AI integration contract, not a cosmetic preference.
-- Reference frame supplied 2026-10-08: lower-left two-line date/time; lower-right TSP/site/camera identifier; white block/pixel-like glyphs with dark outline.
-- Preserve field text, typography, shadow/outline, margins and exact reference pixel coordinates **at 800x600**; verify with original full-resolution reference sample and OCR regression tests.
-- Provide matching scaled stamp geometry for 720p and 1080p, but verify OCR empirically rather than assuming scaling is compatible.
+## Stamp and OCR compatibility
+- **Position and content are decided (D11):** bottom-right corner with date, time, TSP logo and Box number, burned into the frames before encoding.
+- The stamp is read by the existing TSP AI analysis, so it is an integration contract, not a cosmetic detail. Every layout must pass OCR regression tests on real footage.
+- For reference: the MotionEye frame supplied on 2026-10-08 had a two-line date/time in the lower-left corner and the TSP/site/camera identifier in the lower-right, in white block/pixel-like glyphs with a dark outline. The new layout differs, so TSP AI compatibility must be confirmed — open question in [STATUS.md](STATUS.md).
+- Glyph style, size and margins are not decided yet; fix them against a reference sample and OCR tests at 800x600, then provide scaled geometry for 1280x960, 720p and 1080p and verify OCR at each.
 - Candidate: Raspberry Pi's official Picamera2 `examples/timestamped_video.py` using `MappedArray` + `pre_callback` before H.264 encode; optimize via cached/pre-rendered glyph overlay to avoid full-frame transformations.
 - Avoid FFmpeg decode/drawtext/re-encode of all frames on Zero 2 W; expensive and may not sustain 1080p30.
 - Record UTC acquisition time in metadata and render the desired local date/time in the in-frame stamp; validate RTC corrections during capture.
-- Acceptance: compare MotionEye / TSP_Cam frames at 800x600 and run TSP AI OCR tests across timestamps, varying lighting and resolutions. Test sustained FPS with overlay enabled.
+- Acceptance: run TSP AI OCR tests on TSP_Cam frames across timestamps, lighting conditions and resolutions, with MotionEye frames as a baseline. Test sustained FPS with overlay enabled.
 
 ## Direct USB write performance
 - Zero 2 W USB 2.0 OTG should have ample bandwidth for 3–10 Mb/s H.264 (~0.375–1.25 MB/s), but sustained performance is conditional on actual drive, OTG adapter, mount configuration and stable power.
@@ -82,8 +83,8 @@ Status: initial product assumptions; hardware validation required.
 - Separate high-priority recording writes from any panel preview, download or health scanning.
 - Verify read/write contention while technician browses existing recordings during capture.
 
-## 2026-10-08 hardware / operating system decisions
-- Initial OS candidate: Raspberry Pi OS Lite 32-bit Trixie on Pi Zero 2 W. Benchmark vs Lite 64-bit and freeze OS/kernel/camera dependency versions only after successful field validation.
+## Hardware and operating system notes
+- OS (D13): Raspberry Pi OS Lite 32-bit; Bookworm vs Trixie A/B test on a real Zero 2 W with OV5647, then freeze OS/kernel/camera dependency versions after field validation. 64-bit may be benchmarked later.
 - Test initially with mains supply and USB; batteries later. Technician phone platform: Android.
 - Current fleet sensor: OV5647 (approximately 400 modules owned). Detect sensor model and advertised video modes dynamically through libcamera/rpicam.
 - Use capability-driven camera settings. Hide autofocus, manual motor focus, optical zoom, etc unless the sensor/actuator and its driver expose real compatible controls.

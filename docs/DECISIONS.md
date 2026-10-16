@@ -1,66 +1,65 @@
-# Decisions
+# Decisions in force
 
-## 2026-10-08 - Replace MotionEye
+Only current decisions live here. Only the owner (baran93) makes or changes them. When one changes, the previous wording moves to [DECISION_HISTORY.md](DECISION_HISTORY.md) and every affected document is aligned in the same PR ([AGENTS.md](../AGENTS.md) §5).
 
-MotionEye will not be the foundation of the new TSP PiCam software.
+Decisions marked **settled** were explicitly re-confirmed by the owner on 2026-10-16. Agents must not reopen them unless the owner asks.
 
-Reason:
-- unnecessary resource use for a camera whose primary job is continuous recording
-- additional moving parts around motion processing and web streaming
-- difficult failure diagnosis compared with a purpose-built recorder
+## D1. Replace MotionEye
 
-## 2026-10-08 - Recording is independent of networking
+*Since 2026-10-08.* MotionEye is not the foundation of the new TSP PiCam software. A purpose-built recorder replaces it: less resource use for a camera whose job is continuous recording, fewer moving parts (no motion processing, no web streaming stack), easier failure diagnosis.
 
-Bluetooth, Internet, TSP OS and the local panel are secondary services.
+## D2. Recording is independent of networking
 
-A network failure must not interrupt recording.
+*Since 2026-10-08.* Recording never depends on or waits for Bluetooth, Wi-Fi, Internet, the web panel, GitHub or TSP OS. A failure in any of them must not interrupt recording.
 
-## 2026-10-08 - Bluetooth instead of field Wi-Fi
+## D3. Bluetooth first; emergency Wi-Fi AP for 15 minutes after every boot — **settled**
 
-Normal field service/setup communication should move from Wi-Fi to Bluetooth.
+*Since 2026-10-08, boot behaviour re-confirmed by the owner 2026-10-16.* Bluetooth is the primary link: the technician's Android phone provides Bluetooth tethering (NAP), the Pi is the PANU client (`bnep*` interface), giving access to the panel and optionally the phone's Internet.
 
-Primary network model:
-- phone = Bluetooth tethering/NAP + Internet gateway
-- Pi = PANU client
-- Linux network interface = `bnep*`
+The emergency Wi-Fi access point switches on automatically at **every boot**, whether or not Bluetooth works or a phone is connected. It stays on for the first 15 minutes and then switches off by itself. It is a standard boot-time window, not a mode triggered by a Bluetooth failure. Per-unit credentials. Recording depends on neither link (D2).
 
-## 2026-10-08 - Offline first
+**Not decided:** extending the AP or re-enabling it after the 15 minutes (panel, physical button, …) — open question Q4 in [STATUS.md](STATUS.md). Details: [FIELD_REQUIREMENTS.md](FIELD_REQUIREMENTS.md) *Connectivity*.
 
-The camera can operate without Internet.
+## D4. Offline first
 
-Events/logs are queued locally and synchronized when technician-phone Internet becomes available.
+*Since 2026-10-08.* The camera works fully without Internet, using its RTC and USB storage. Events and logs are queued locally and synchronised when the technician's phone provides Internet.
 
-## 2026-10-08 - Pi Zero 2 W first
+## D5. Target hardware and technician phones
 
-The first production target is Raspberry Pi Zero 2 W. Resource usage and dependencies should be evaluated against this device, not a Pi 5 development machine.
+*Since 2026-10-08.* First production target: Raspberry Pi Zero 2 W (512 MB RAM) with OV5647 5 MP camera modules, USB recording drive and RTC module. Mains power for testing, battery in the target design. Technicians use Android phones. Resource use is judged on Zero 2 W, not on a faster development Pi.
 
-## 2026-10-08 - Autostart recording and evidence preservation
+## D6. Autostart recording — **settled**
 
-On boot, recording must automatically begin to USB once a writable USB volume is present, even with no phone or browser connection. The camera also autostarts on later insertion. Never overwrite or automatically delete any recording. Full/missing USB causes a visible error, with no hidden microSD fallback.
+*Since 2026-10-08, re-confirmed 2026-10-16.* The camera starts recording by itself once a working, writable USB drive is detected: at boot, or later on insertion without a reboot. It does not wait for a phone, the panel or any network. Missing or failed USB is reported as an error; there is no silent fallback to the system microSD. Details: [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) items 1–2, 8.
 
-## 2026-10-08 - Keep existing 60-minute physical video workflow
+## D7. No overwriting, no automatic deletion — **settled**
 
-Existing TSP one-hour MP4 files remain the default. The office uses an MP4 repair tool when a file is interrupted by power loss. Do not silently switch production to shorter physical segments or raw H.264; test writer/container on real workflow. **Superseded on 2026-10-08:** the earlier elapsed-3600-second rule was replaced by full wall-clock-hour boundaries. See newest decision below.
+*Since 2026-10-08, re-confirmed 2026-10-16.* Recordings are never overwritten and never deleted automatically. No loop recording, no cleanup to free space. A full USB drive stops capture and raises an alarm. Filenames stay unique even after clock changes or repeated restarts. Details: [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) item 3.
 
-## 2026-10-08 - Explicit automatic/manual clock modes
+## D8. MP4 files split at full wall-clock hours — **settled**
 
-Default AUTO: restore time from RTC and start, synchronize with Internet via technician's Android Bluetooth connection when available, store corrected time to RTC. MANUAL: user can enter date/time; persist setting and prevent NTP/background overwrite. Panel compares camera time to phone time as warning; `Update Time` explicitly changes system clock and RTC and logs correction. Missing RTC communication is an honest alarm.
+*Since 2026-10-08, re-confirmed 2026-10-16.* Recordings are MP4 files split at each full hour of the camera's configured local time. The first file after start may be shorter (start 14:17 → first file ends about 15:00, then 15:00–16:00, …); a file interrupted by Power Down or failure may also be shorter. The split happens at a suitable H.264 keyframe without stopping capture. Segment length is not configurable. No shorter physical clips or other container in production without the owner's explicit approval. The office repairs files cut by power loss with its MP4 repair tool ("MP4 Fix"). Details: [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) items 4–6 and *Clock-hour rotation and clock changes*.
 
-## 2026-10-08 - One-button full safe shutdown
+## D9. Clock modes AUTO and MANUAL
 
-Authenticated `Power Down` closes/flushes video and filesystems and initiates Raspberry Pi OS poweroff. Explain that power supply/battery may remain physically connected. Technician observes safe-halt indication before unplugging USB.
+*Since 2026-10-08.* **AUTO** (default): restore time from RTC at boot and start recording; when Internet is available through the phone, NTP corrects the clock and the RTC. **MANUAL**: the technician sets date and time; the mode persists and background NTP must not overwrite it. The panel compares phone and camera time and only warns; an explicit *Update time* changes system clock and RTC and is logged. A missing RTC is reported honestly. Details: [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) *Timekeeping*.
 
-## 2026-10-08 - Technician installation workflow
+## D10. Power Down shuts down the whole Pi — **settled**
 
-Technician checks low-FPS framing preview, live file creation/growth, camera time and RTC status; does not need to start recording manually or play an unfinished MP4.
+*Since 2026-10-08, re-confirmed 2026-10-16.* The authenticated *Power Down* button closes the current recording safely, flushes data and filesystems, and powers off the whole Raspberry Pi. It does not claim to disconnect an external battery. Details: [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) *Safe Power Down*.
 
-Canonical behavior specification: [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md).
+## D11. Stamp in the bottom-right corner — **settled**
 
+*Since 2026-10-16.* The video carries a stamp in the **bottom-right corner** with **date, time, TSP logo and Box number**, burned into the frames before encoding. Compatibility with the existing TSP AI analysis must be verified by OCR tests. Exact glyph style and size are not decided yet ([STATUS.md](STATUS.md), open questions). Details: [FIELD_REQUIREMENTS.md](FIELD_REQUIREMENTS.md) *Stamp and OCR compatibility*.
 
-## 2026-10-08 - Superseded: recording segment clock is elapsed 3600 seconds
+## D12. Technician installation workflow
 
-**Historical decision, superseded later on 2026-10-08.** Previously planned 3600 seconds from recording start. Do not implement this rule; follow the latest wall-clock-aligned decision below.
+*Since 2026-10-08.* The technician powers up the camera, aims it using a low-FPS preview, checks that the current file exists and is growing, checks camera time and RTC status, and leaves it. No manual start of recording, no playing of an unfinished MP4. Details: [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) *Technician panel*.
 
-## 2026-10-08 - FINAL: segment video on full clock hours
+## D13. Operating system
 
-**Latest explicit operator decision supersedes the elapsed-3600-second rule above.** Rotate physical MP4 recordings at each full **wall-clock hour** in the camera's configured local timezone. For example, start recording at 14:17 -> first file ends at ~15:00, then 15:00–16:00, 16:00–17:00. The first and shutdown/interrupted files may be shorter. Continue using MP4 and preserve TSP office compatibility. Switch as close as safely possible to hour boundary, at a valid encoder keyframe, without stopping camera capture. Never overwrite or delete older recordings. For clock adjustments, ambiguous DST hours and filename collisions, make uniquely named new segments and log boundaries/time corrections; do not silently extend/overwrite a file. See [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md).
+*Since 2026-10-08.* Raspberry Pi OS Lite 32-bit. Bookworm or Trixie is chosen after an A/B test on a real Zero 2 W with OV5647; the tested image and dependency versions are then pinned. 64-bit may be benchmarked later. Details: [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md).
+
+## D14. Collaboration workflow
+
+*Since 2026-10-16.* Claude and ChatGPT change the repository only through pull requests; nobody writes to `main` directly. This is an organisational rule; GitHub branch protection is not enabled yet (owner action in [STATUS.md](STATUS.md)). One agent implements, the other reviews in a signed PR comment, the owner decides and merges. Both agents currently act through the owner's GitHub account, so a formal approval from a second account is not possible. Every PR updates [STATUS.md](STATUS.md). Rules: [AGENTS.md](../AGENTS.md).
