@@ -90,3 +90,10 @@ Proposed order; the owner assigns implementer and reviewer for each task.
 3. Hardware bring-up on one Zero 2 W + OV5647: run the read-only checklist from [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) and commit the results. Needs the owner with the hardware.
 4. Phase 0 code: Python package skeleton, tests, systemd unit stubs, read-only diagnostics command.
 5. Phase 1 recorder MVP: hardware H.264 to hourly MP4 at clock boundaries, autostart on USB, 48 h test.
+
+## PR #3 — Phase 0 Python foundation (proposed, stacked after PR #2)
+
+- Implementer: ChatGPT (GPT-6); reviewer: Claude; owner merges.
+- Adds `tspcam status`, periodic read-only diagnostics, localhost-only read-only web page, two systemd services, pilot one-command **local** install, Python unit tests and GitHub Actions CI.
+- Explicitly **not implemented**: camera recorder, hourly MP4, autostart capture, RTC writes, external authenticated web panel, BT PAN/Wi-Fi AP, trusted remote GitHub release bootstrap, signed OTA/rollback.
+- Next: merge PR #1 then #2, Claude reviews PR #3, pilot check on Zero 2 W, separately implement capture pipeline and signed stable-release delivery. No deployment to live surveys until hardware acceptance tests.
