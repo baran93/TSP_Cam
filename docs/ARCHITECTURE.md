@@ -23,11 +23,11 @@ Planned systemd services (logical split; may be merged if 512 MB RAM measurement
 | Service | Role |
 |---|---|
 | `tspcam-capture` | The only camera owner: hardware H.264, hourly MP4 segmentation, burned-in stamp, low-res frames for preview, progress counters, safe stop. |
-| `tspcam-control` | Small authenticated HTTP server and mobile web panel. Never owns the recorder lifecycle; runs as non-root. |
+| `tspcam-control` | Small authenticated HTTP server and mobile web panel: status, configuration, diagnostics, on-demand preview, service actions (restart capture, reboot, Power Down). Never owns the recorder lifecycle; runs as non-root; does not decode or process video when nobody is viewing. |
 | `tspcam-agent` | Health probes and durable event log, independent of the browser. |
 | `tspcam-connectivity` | Bluetooth PAN client and the 15-minute emergency Wi-Fi AP. |
 | `tspcam-updater` | Narrowly privileged signed-release installer with rollback ([INSTALL_AND_UPDATES.md](INSTALL_AND_UPDATES.md)). |
-| `tspcam-sync` | Optional deferred upload of queued events to TSP OS. |
+| `tspcam-sync` | Optional deferred upload to TSP OS. A local SQLite queue holds events (installation/update, health, recording start/stop, USB/storage, RTC/time, errors, battery when supported); unsent events are uploaded when the phone provides Internet and marked as synchronised. |
 
 ```text
 Camera module

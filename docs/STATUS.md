@@ -26,7 +26,7 @@ Found while aligning the documents. Flagged, not resolved; none of them reopens 
 - (a) Will the TSP AI/OCR be adapted to the new position? Who tests it, and on which sample footage?
 - (b) Glyph style is undecided: the plan described white text on a semi-transparent dark box, the requirements described white block glyphs with a dark outline (MotionEye style). Suggestion: decide after an OCR test of both.
 
-**Q2. Folder and filename layout on USB.** The documents had two different examples (`TSP-PiCam-004/<date>/<date-time>` and `TSP_Box_030/recordings/`). The field contract says to keep the existing convention (`%Y-%m-%d-%H-%M-%S` under per-unit/per-date folders). Needed: a real path from a current MotionEye USB drive and the exact Box ID format.
+**Q2. Folder and filename layout on USB.** The documents had two different examples (`TSP-PiCam-004/<date>/<date-time>` and `TSP_Box_030/recordings/`). The field contract says to keep the existing convention (`%Y-%m-%d-%H-%M-%S` under per-unit/per-date folders). Needed: a real path from a current MotionEye USB drive and the exact Box ID format. Related design point: the old architecture suggested giving the file being written a temporary suffix and renaming it on clean close. That was not carried over, because a file cut by power loss would then reach the office under a non-standard name; it is to be settled together with the layout.
 
 **Q3. Default recording profile.** Candidates: 1280×960@30 (full field of view), 1080p30 (centre-cropped on OV5647), 800×600 (legacy). Suggested rule: decide after the field-of-view, OCR and 48 h tests (Gate B). Confirm the rule or set a default.
 
@@ -46,7 +46,7 @@ Moved here from MASTER_PLAN so open items live in one place:
 - Actual RTC chip, USB adapter/drive models, boot SD capacity.
 - OV5647 real field of view and sustained FPS for each profile, especially legacy 800×600.
 - MP4 behaviour on power loss: active file repairable with the office MP4 tool, previous files readable.
-- Stamp overlay CPU cost at 1080p30.
+- Stamp overlay CPU cost at 1080p30; if too expensive, compare GPU/compositor options or simpler burned-in glyphs.
 - Android Bluetooth PAN reliability across technicians' phones; Wi-Fi AP and Bluetooth coexistence.
 - Update signing service and read-only delivery for the private repository.
 - Objective acceptance limits (maximum gap, frame loss, current draw), set after the baseline hardware test.

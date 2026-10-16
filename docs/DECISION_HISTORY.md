@@ -99,6 +99,8 @@ ARCHITECTURE.md (2026-10-08) predated later decisions. Key outdated lines:
 >
 > A later phase can remux completed H.264 segments to MP4 without re-encoding if required by the office workflow.
 
+Also not carried over: *"Temporary/incomplete files should use a temporary suffix and be atomically renamed after a clean close."* A file cut by power loss would reach the office under a non-standard name; the point is tracked with the USB layout question in [STATUS.md](STATUS.md).
+
 Replaced by **D3**, **D8**, [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) and the component model in [MASTER_PLAN.md](MASTER_PLAN.md). ARCHITECTURE.md is now a short overview that links to those documents instead of repeating them.
 
 ### H9. Early service names
