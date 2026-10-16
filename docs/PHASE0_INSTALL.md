@@ -47,4 +47,24 @@ On disk:
 
 The initial script created staging with `mktemp -d` (mode 0700) and moved that directory unchanged into releases; ordinary `pi` user and `tspcam` service therefore could not traverse `/opt/tspcam/current`. Corrected to set release directory mode 0755; also fixed a malformed temporary symlink path in an intervening commit.
 
-This installer does **not** implement recording, MP4, Bluetooth PAN, Wi-Fi AP, real camera settings, RTC updates, authentication or fleet OTA. It does implement an experimental on-demand live preview. Recorder testing is next.
+This installer does **not** implement H.264/MP4 recording, Bluetooth PAN, Wi-Fi AP, RTC updates, authentication or fleet OTA. It **does** implement experimental live JPEG preview and persistent camera-profile settings; the recording resolution is only a future intent until the real recorder is written.
+
+## USB storage pilot
+
+A physically attached USB filesystem is discovered using `lsblk` (only USB transport, not SD). The installer enables a conservative `tspcam-usb-mount.timer` that checks every 30 seconds for a single eligible USB filesystem, and the one-shot mount service attempts to mount it to `/media/tspcam`, without formatting. Existing valid USB mounts such as `/media/usb0` are reused instead. More than one ambiguous unmounted USB volume is not auto-selected.
+
+The dashboard distinguishes **USB detected**, **mounted**, and **writable / future recording destination**. If the volume is unmounted, read-only, inaccessible to the web service or not a supported format, it cannot be a recording destination. **Never fallback to the microSD**. This does not start any MP4 recording.
+
+Check after installation:
+
+```sh
+lsblk -o NAME,TRAN,TYPE,FSTYPE,MOUNTPOINTS,LABEL,SIZE
+systemctl status tspcam-usb-mount.timer tspcam-usb-mount.service --no-pager
+tspcam status
+```
+
+## Preview and device settings
+
+The technician panel has PNG branding based on the owner's image. Choose live preview resolutions `640x480`, `800x600`, or `1280x720`, and `1`, `3`, or `5` FPS. Frames are JPEGs in RAM; live preview releases the camera after inactivity and resumes on next request. The actual FPS and power consumption require validation on the owner's Zero 2 W; 5 FPS is an upper requested rate, not a measured guarantee. Settings are stored in `/var/lib/tspcam/settings.json`.
+
+The recording resolution dropdown is persistent but has no effect until the recorder component is implemented. These are safe setup experiments only.

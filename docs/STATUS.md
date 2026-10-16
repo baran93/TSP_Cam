@@ -5,7 +5,7 @@ Every PR updates this file ([AGENTS.md](../AGENTS.md) §5.3).
 
 ## Phase
 
-**Design only (roadmap Phase 0).** No installer, recorder or panel code exists. Nothing has been tested on a Raspberry Pi Zero 2 W yet.
+**Phase 0 software pilot on actual owner Raspberry Pi Zero 2 W.** Diagnostics, local network dashboard, preview and USB discovery are implemented in unmerged PR #3. MP4 recorder is NOT implemented; sensor preview FPS/storage readiness require hardware revalidation.
 
 ## Current work
 
