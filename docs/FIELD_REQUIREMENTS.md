@@ -34,6 +34,17 @@ Status: initial product assumptions; hardware validation required. Aligned with 
 - Wi-Fi AP should be access-restricted; no default shared fleet-wide password.
 - Networking and panel crashes may **never** stop local recording.
 
+## Bluetooth session flow (D15)
+Status: **planned, not implemented; unverified on Zero 2 W and on technicians' phones.**
+- **Waiting:** BLE advertising with a TSP GATT service (BlueZ GATT server). Advertised name identifies the unit (e.g. Box ID; exact format follows Q2 in [STATUS.md](STATUS.md)).
+- **Request:** the phone connects over BLE and writes a defined, authenticated command to the GATT service. Plain BLE advertising, or pairing from Android's Bluetooth settings, does **not** start PAN on its own — a phone-side client is required (Android app or Web Bluetooth page, Q9).
+- **Session:** on a valid request the camera calls BlueZ `Network1.Connect("nap")` to the phone's Bluetooth tethering. The camera cannot switch tethering on; the technician must enable it on the phone. The camera must learn the phone's Classic address from bonding or from the request itself (Android uses changing BLE addresses) — verify on real phones.
+- **Security:** never start PAN for an anonymous BLE connection. Require bonding or another authorisation, rate-limit requests, and optionally keep an allowlist of known technician phones.
+- **End:** phone disconnects, or no PAN link within a timeout of a few minutes (value to be set after tests) → back to BLE advertising.
+- **Recovery** (in `tspcam-connectivity`, independent of `tspcam-capture`): retry PAN → restart Bluetooth service → reset controller → reload Bluetooth driver; recording continues throughout; every step logged. Behaviour after repeated failure: Q8.
+- **Coexistence:** BLE, Classic PAN and the boot-time Wi-Fi AP share one radio; test them running together during the first 15 minutes after boot.
+- **Measure** on Zero 2 W: current draw while waiting with BLE advertising vs Classic connectable waiting vs active PAN. Do not promise energy savings before the measurement.
+
 ## Technician UX
 - Mobile-first minimal screen: camera ID, RECORDING/ERROR state, recent segment, USB presence/space, RTC/time, temperature, Internet/Bluetooth.
 - Configurable resolution, FPS, bitrate preset and target storage. Segment length is fixed by D8.

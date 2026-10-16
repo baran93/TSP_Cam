@@ -14,7 +14,7 @@ Decisions marked **settled** were explicitly re-confirmed by the owner on 2026-1
 
 ## D3. Bluetooth first; emergency Wi-Fi AP for 15 minutes after every boot — **settled**
 
-*Since 2026-10-08, boot behaviour re-confirmed by the owner 2026-10-16.* Bluetooth is the primary link: the technician's Android phone provides Bluetooth tethering (NAP), the Pi is the PANU client (`bnep*` interface), giving access to the panel and optionally the phone's Internet.
+*Since 2026-10-08, boot behaviour re-confirmed by the owner 2026-10-16.* Bluetooth is the primary link: the technician's Android phone provides Bluetooth tethering (NAP), the Pi is the PANU client (`bnep*` interface), giving access to the panel and optionally the phone's Internet. How a Bluetooth session is started: D15.
 
 The emergency Wi-Fi access point switches on automatically at **every boot**, whether or not Bluetooth works or a phone is connected. It stays on for the first 15 minutes and then switches off by itself. It is a standard boot-time window, not a mode triggered by a Bluetooth failure. Per-unit credentials. Recording depends on neither link (D2).
 
@@ -63,3 +63,23 @@ The emergency Wi-Fi access point switches on automatically at **every boot**, wh
 ## D14. Collaboration workflow
 
 *Since 2026-10-16.* Claude and ChatGPT change the repository only through pull requests; nobody writes to `main` directly. This is an organisational rule; GitHub branch protection is not enabled yet (owner action in [STATUS.md](STATUS.md)). One agent implements, the other reviews in a signed PR comment, the owner decides and merges. Both agents currently act through the owner's GitHub account, so a formal approval from a second account is not possible. Every PR updates [STATUS.md](STATUS.md). Rules: [AGENTS.md](../AGENTS.md).
+
+## D15. Bluetooth session: BLE discovery, then Classic PAN
+
+*Since 2026-10-16.* Accepted direction for how the technician's phone reaches the camera:
+
+1. **Waiting:** while recording, the camera advertises its presence over Bluetooth Low Energy — the low-power discovery channel.
+2. **Request:** the technician's phone connects over BLE and sends an authenticated request.
+3. **Session:** the camera sets up a Bluetooth Classic PAN connection to the phone (Pi = PANU, phone = NAP via Bluetooth tethering) for the full web panel, configuration, diagnostics and the phone's Internet.
+4. **End:** when the phone disconnects, or no PAN link is established within a timeout, the camera returns to BLE advertising.
+
+BLE and Classic are two link types of the same radio controller; switching between them means activating services, not powering the module on or off. Recording never depends on any of this (D2).
+
+**Bluetooth recovery** runs entirely in the connectivity service and never stops recording: retry the PAN connection → restart the Bluetooth service → reset the Bluetooth controller → reload the Bluetooth driver. Every step is logged.
+
+**Not decided:**
+- what happens when recovery fails after repeated attempts — Wi-Fi fallback and/or automatic reboot (Q8 in [STATUS.md](STATUS.md));
+- the phone-side client (Android app or Web Bluetooth page) and how phones are authorised (Q9);
+- whether BLE waiting saves enough energy to justify the extra client: to be measured on Zero 2 W before production.
+
+Requirements and technical constraints: [FIELD_REQUIREMENTS.md](FIELD_REQUIREMENTS.md) *Bluetooth session flow*.

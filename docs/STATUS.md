@@ -1,6 +1,6 @@
 # Project status
 
-**Last updated:** 2026-10-16 by Claude, PR #1 (branch `claude/consolidate-docs`), after ChatGPT's review.
+**Last updated:** 2026-10-16 by Claude, Bluetooth PR (branch `claude/bluetooth-ble-pan`, stacked on PR #1).
 Every PR updates this file ([AGENTS.md](../AGENTS.md) §5.3).
 
 ## Phase
@@ -12,12 +12,14 @@ Every PR updates this file ([AGENTS.md](../AGENTS.md) §5.3).
 | Task | Implementer | Reviewer | State |
 |---|---|---|---|
 | Collaboration rules and documentation consolidation (PR #1) | Claude | ChatGPT | Reviewed: 5 fixes requested, all applied. Waiting for ChatGPT's re-check and the owner's merge. |
+| Bluetooth: BLE discovery → Classic PAN, recovery (D15) | Claude | ChatGPT | PR open, stacked on PR #1 (merge #1 first). Waiting for review. |
 
 ## Done
 
 - **2026-10-08** — Design documentation written by ChatGPT with the owner: master plan, field requirements, field operation contract, OTA design, technical risk audit, recommended stack, market research.
 - **2026-10-16** — Shared rules for both agents ([AGENTS.md](../AGENTS.md)), product brief added ([PROJECT_BRIEF.md](PROJECT_BRIEF.md)), [DECISIONS.md](DECISIONS.md) reduced to decisions in force with history in [DECISION_HISTORY.md](DECISION_HISTORY.md), contradictions between documents removed or flagged below.
 - **2026-10-16** — First cross-review: ChatGPT reviewed PR #1 and requested 5 fixes (language as a proposal, technical recommendations vs decisions, branch protection not yet enabled, Wi-Fi wording, brief authorship). Claude applied them in the same PR. The owner confirmed the Wi-Fi boot behaviour (D3).
+- **2026-10-16** — Owner accepted the Bluetooth direction: BLE discovery, then Classic PAN, back to BLE after the session (D15). Contested and open parts are Q8 and Q9.
 
 ## Open questions for the owner
 
@@ -39,6 +41,15 @@ Found while aligning the documents. Flagged, not resolved; none of them reopens 
 
 **Q7. Product brief.** [PROJECT_BRIEF.md](PROJECT_BRIEF.md) was compiled by ChatGPT from your requirements, not written by you word for word. It ranks second in the precedence list ([AGENTS.md](../AGENTS.md) §4), so please confirm it as the approved product description or say what to change.
 
+**Q8. When Bluetooth cannot be recovered.** Agreed: retry PAN → restart Bluetooth service → reset controller → reload driver, all without stopping recording (D15). Not agreed — what after repeated failure (e.g. 3 rounds):
+- (a) **Owner's first idea:** full system reboot, recording included.
+- (b) **Claude's proposal:** first switch the Wi-Fi AP on for 15 minutes (no recording gap; this also answers part of Q4). Reboot only if Wi-Fi does not come up either (Bluetooth and Wi-Fi share one radio chip, so a hung chip takes both), right after a full-hour file split, at most once per 24 h, logged as a recording gap.
+- (c) **ChatGPT's position:** no automatic reboot of a recording camera without a separate owner decision; Bluetooth-level recovery only.
+
+A reboot breaks D2 (no connectivity failure may interrupt recording) and risks a reboot loop if the Bluetooth hardware is dead, so (a) or (b) would mean amending D2. Choose (a), (b), (c) or another rule.
+
+**Q9. Phone-side client for BLE.** Android does not start the BLE → PAN flow from its Bluetooth settings, so technicians need either (a) a small Android app or (b) a Web Bluetooth page in Chrome, installed on the phone beforehand so it works offline. Also: how phones are authorised (pairing at the office vs in the field, allowlist of technician phones, per-box key). Who builds and maintains the client?
+
 ## Owner actions
 
 - **Enable branch protection on `main`** in GitHub repository settings (not enabled as of 2026-10-16):
@@ -55,6 +66,8 @@ Moved here from MASTER_PLAN so open items live in one place:
 - MP4 behaviour on power loss: active file repairable with the office MP4 tool, previous files readable.
 - Stamp overlay CPU cost at 1080p30; if too expensive, compare GPU/compositor options or simpler burned-in glyphs.
 - Android Bluetooth PAN reliability across technicians' phones; Wi-Fi AP and Bluetooth coexistence.
+- BLE → Classic PAN transition on technicians' real phones (D15).
+- Current draw on Zero 2 W: BLE waiting vs Classic connectable waiting vs active PAN — decides whether BLE is worth the phone-side client.
 - Update signing service and read-only delivery for the private repository.
 - Objective acceptance limits (maximum gap, frame loss, current draw), set after the baseline hardware test.
 
@@ -66,6 +79,7 @@ The P0/P1 list in [TECHNICAL_RISK_AUDIT.md](TECHNICAL_RISK_AUDIT.md) is current 
 
 Proposed order; the owner assigns implementer and reviewer for each task.
 1. ChatGPT re-checks the fixes in PR #1. The owner answers Q1–Q7 (PR comments are fine; answers can also come later) and merges.
-2. Hardware bring-up on one Zero 2 W + OV5647: run the read-only checklist from [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) and commit the results. Needs the owner with the hardware.
-3. Phase 0 code: Python package skeleton, tests, systemd unit stubs, read-only diagnostics command.
-4. Phase 1 recorder MVP: hardware H.264 to hourly MP4 at clock boundaries, autostart on USB, 48 h test.
+2. ChatGPT reviews the Bluetooth PR (merge after #1). The owner answers Q8 and Q9.
+3. Hardware bring-up on one Zero 2 W + OV5647: run the read-only checklist from [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) and commit the results. Needs the owner with the hardware.
+4. Phase 0 code: Python package skeleton, tests, systemd unit stubs, read-only diagnostics command.
+5. Phase 1 recorder MVP: hardware H.264 to hourly MP4 at clock boundaries, autostart on USB, 48 h test.
