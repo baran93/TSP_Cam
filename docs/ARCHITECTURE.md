@@ -1,155 +1,80 @@
-# TSP_Cam Architecture
+# TSP_Cam Architecture — overview
+
+Short overview only. Binding behaviour is in [DECISIONS.md](DECISIONS.md) and [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md); the detailed component plan is in [MASTER_PLAN.md](MASTER_PLAN.md); technology choices are in [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md). Status: **design only, not implemented.**
 
 ## Principles
 
 1. Recording is the highest-priority function.
-2. Recording must not depend on Bluetooth, Internet, the web panel or TSP OS.
-3. The system is offline-first.
-4. Wi-Fi is not required for normal field use.
-5. Services should remain small enough for Raspberry Pi Zero 2 W.
-6. A camera failure, full USB drive or bad RTC must be reported clearly.
-7. Configuration changes must be persistent and auditable.
+2. Recording does not depend on Bluetooth, Wi-Fi, Internet, the web panel or TSP OS (D2).
+3. Offline first (D4).
+4. Bluetooth is the normal service link; Wi-Fi runs only as an emergency AP for the first 15 minutes after boot (D3).
+5. Everything must fit Raspberry Pi Zero 2 W (512 MB RAM) and minimise CPU and power use.
+6. A camera failure, missing or full USB drive, or bad RTC is reported clearly, never hidden.
+7. Configuration changes are validated, persistent and auditable.
 
 ## Target hardware
 
-Initial target:
-- Raspberry Pi Zero 2 W
-- Raspberry Pi camera module
-- USB storage
-- RTC module
-- external battery/powerbank
+Raspberry Pi Zero 2 W, OV5647 camera module (future modules with autofocus or zoom via capability detection), USB recording drive, RTC module. Mains power for testing, battery in the target design (D5).
 
-Initial capture target remains compatible with the current TSP PiCam use case:
-- 800x600
-- continuous recording
-- 1-hour recording segments
+## Components
 
-Exact framerate/bitrate will be measured on real hardware rather than hard-coded as a design assumption.
+Planned systemd services (logical split; may be merged if 512 MB RAM measurements require it). Details: [MASTER_PLAN.md](MASTER_PLAN.md) *Component model*.
 
-## Service layout
-
-### tspcam-recorder
-
-Owns the camera.
-
-Responsibilities:
-- camera detection
-- start/stop capture
-- continuous H.264 recording
-- time-based segmentation
-- safe file close/rename
-- write recording state
-- automatic recovery after camera or storage errors
-
-The first implementation should use the current Raspberry Pi camera stack (`rpicam` / libcamera). A Picamera2 implementation can be used where direct programmatic control gives a clear advantage.
-
-### tspcam-api
-
-Must never own the recorder lifecycle.
-
-Responsibilities:
-- local status page
-- configuration
-- diagnostics
-- one-shot/low-resolution preview on demand
-- service actions such as restart recorder or reboot/shutdown
-
-The UI should not continuously decode/process video when nobody is viewing it.
-
-### tspcam-bt
-
-Bluetooth networking and pairing.
-
-Primary mode:
-- technician enables Bluetooth tethering on the phone
-- Raspberry Pi connects as PANU
-- BlueZ creates a `bnep*` network interface
-- Pi receives local IP + temporary Internet through the phone
-- local API/web panel is reachable over that Bluetooth network
-
-No permanent SIM is required per camera.
-
-Wi-Fi should be disabled in normal field configuration.
-
-### tspcam-sync
-
-Offline-first synchronization.
-
-Local SQLite database stores queued events such as:
-- installation/update
-- camera health
-- recording started/stopped
-- USB/storage status
-- RTC/time status
-- errors
-- battery status when hardware support is available
-
-When Internet becomes available through the technician phone, unsent events are uploaded to TSP OS/API and marked as synchronized.
-
-### tspcam-health
-
-Checks:
-- camera available
-- recorder process alive
-- file is actively growing
-- USB mounted
-- free disk space
-- system temperature
-- RTC readable
-- system time plausible
-- Bluetooth state
-- Internet/API reachability when connected
-- uptime
-- last successful sync
-
-Do not assume the camera is always exposed as `/dev/video0`.
-
-## Storage
-
-Suggested layout:
+| Service | Role |
+|---|---|
+| `tspcam-capture` | The only camera owner: hardware H.264, hourly MP4 segmentation, burned-in stamp, low-res frames for preview, progress counters, safe stop. |
+| `tspcam-control` | Small authenticated HTTP server and mobile web panel. Never owns the recorder lifecycle; runs as non-root. |
+| `tspcam-agent` | Health probes and durable event log, independent of the browser. |
+| `tspcam-connectivity` | Bluetooth PAN client and the 15-minute emergency Wi-Fi AP. |
+| `tspcam-updater` | Narrowly privileged signed-release installer with rollback ([INSTALL_AND_UPDATES.md](INSTALL_AND_UPDATES.md)). |
+| `tspcam-sync` | Optional deferred upload of queued events to TSP OS. |
 
 ```text
-/media/tspcam/
-  TSP-PiCam-004/
-    2026-10-08/
-      2026-10-08-08-00-00.h264
-      2026-10-08-09-00-00.h264
+Camera module
+     |
+     v
+tspcam-capture  ---> USB recordings
+     |
+     +----> local state / health <---- tspcam-agent
+                    |
+                    v
+             tspcam-control
+                    |
+   Bluetooth PAN (bnep0)  /  emergency Wi-Fi AP (first 15 min)
+                    |
+             Technician phone ---- mobile Internet ---- TSP OS
 ```
 
-Temporary/incomplete files should use a temporary suffix and be atomically renamed after a clean close.
+## Health checks (`tspcam-agent`)
 
-A later phase can remux completed H.264 segments to MP4 without re-encoding if required by the office workflow.
+Process liveness alone is not enough ([TECHNICAL_RISK_AUDIT.md](TECHNICAL_RISK_AUDIT.md) item 2). Check:
+- fresh camera frames and encoder output; the active file is actually growing;
+- USB mounted on the expected device, writable, free space;
+- RTC readable, system time plausible, clock mode;
+- CPU temperature, RAM, undervoltage/throttling, USB disconnects;
+- Bluetooth state, Internet/TSP OS reachability when connected, last successful sync, uptime.
 
-## Time
+Do not assume the camera is always `/dev/video0`.
 
-Priority:
-1. Network time when Internet is available.
-2. Store corrected network time to RTC.
-3. On offline boot, restore time from RTC.
-4. Detect obviously invalid timestamps and flag them before recording.
+## Storage and time
+
+- Recording files, retention and naming: D6–D8 and [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) items 1–8. The exact folder and filename layout on USB is an open question in [STATUS.md](STATUS.md).
+- Clock: D9 and [FIELD_OPERATION_SPEC.md](FIELD_OPERATION_SPEC.md) *Timekeeping*. With invalid time the camera keeps recording to preserve evidence, shows a warning and logs time validity.
 
 ## Bluetooth
 
-BlueZ Network API supports PAN roles such as PANU/NAP and exposes the network connection as a Linux interface such as `bnep0`.
+BlueZ Network API supports PAN roles (PANU/NAP) and exposes the link as a Linux interface such as `bnep0`. The technician enables Bluetooth tethering on the phone, the Pi connects as PANU, gets a local IP and temporary Internet, and the panel is reachable over that link. No permanent SIM per camera.
 
-Bluetooth is intended for:
-- local service panel
-- setup/configuration
-- sending status/logs
-- temporary Internet access through a phone
-
-High-quality continuous live streaming is not a core requirement over Bluetooth. Preview should be low-resolution and on-demand.
+Bluetooth carries the panel, setup, status/logs and temporary Internet. Continuous high-quality live video is not a goal; preview is low-resolution and on demand.
 
 ## Failure isolation
 
-Examples:
-- Phone disconnects -> recording continues.
-- TSP OS unavailable -> events remain queued locally.
-- Web UI crashes -> recorder continues.
-- Bluetooth crashes -> recorder continues.
-- USB full/unmounted -> recorder raises critical health state and retries according to policy.
-- Camera disappears -> recorder retries and records the failure in local state.
+- Phone disconnects → recording continues.
+- TSP OS unavailable → events stay queued locally.
+- Panel or Bluetooth crashes → recording continues.
+- USB full or unmounted → critical health state, alarm, no writes to microSD (D6, D7).
+- Camera disappears → capture retries with bounded backoff and records the gap.
 
-## Future TSP OS integration
+## TSP OS integration (future)
 
-Each physical PiCam should map to the central TSP OS Unit record. TSP_Cam should expose stable device identity and health/status instead of maintaining a separate competing source of truth.
+Each physical camera maps to a TSP OS Unit record. TSP_Cam exposes a stable device identity and health/status rather than keeping a competing source of truth.

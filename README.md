@@ -1,62 +1,63 @@
 # TSP_Cam
 
-Lightweight Raspberry Pi camera system for TSP, designed to replace MotionEye.
+Lightweight Raspberry Pi camera system for TSP, designed to replace MotionEye on field cameras used for traffic surveys (MCC, TMC, ANPR) and later AI analysis.
+
+**Status: design only.** No installer, recorder or panel has been implemented or tested on hardware yet. Current state and open questions: [docs/STATUS.md](docs/STATUS.md).
 
 ## Goals
 
-- Continuous recording without motion detection overhead.
-- Raspberry Pi Zero 2 W first.
-- Camera recording must continue even if Bluetooth, API or phone connection fails.
-- No Wi-Fi required for normal field operation.
-- Bluetooth PAN connection to a technician phone for local control and temporary Internet access.
+- Continuous recording, no motion detection.
+- Raspberry Pi Zero 2 W + OV5647 first.
+- Recording starts by itself on a working USB drive and never depends on Bluetooth, Wi-Fi, Internet, the panel or TSP OS.
+- MP4 files split at full wall-clock hours; never overwritten, never deleted automatically.
+- In-video stamp in the bottom-right corner: date, time, TSP logo, Box number.
+- Bluetooth PAN to the technician's Android phone for the panel and temporary Internet; emergency Wi-Fi AP only for the first 15 minutes after boot.
+- RTC keeps time offline; NTP corrects it when the phone provides Internet.
 - Offline-first status/log queue with later sync to TSP OS.
-- Recording to USB storage in fixed time segments.
-- RTC fallback when Internet time is unavailable.
-- Very small local web/API surface for setup, diagnostics and service.
+- Small authenticated local panel for setup, diagnostics and safe Power Down.
 
-## Initial architecture
+## Architecture at a glance
 
 ```text
-Camera Module
+Camera module
      |
      v
-tspcam-recorder  ---> USB recordings
+tspcam-capture  ---> USB recordings (MP4, hourly)
      |
-     +----> local state / health
+     +----> local state / health <---- tspcam-agent
                     |
                     v
-               tspcam-api
+             tspcam-control (panel)
                     |
-          Bluetooth PAN (bnep0)
+          Bluetooth PAN (bnep0)  /  Wi-Fi AP (first 15 min)
                     |
-             Technician phone
-                    |
-              mobile Internet
-                    |
-                  TSP OS
+             Technician phone ---- mobile Internet ---- TSP OS (tspcam-sync)
 ```
 
-The recorder is deliberately independent from networking. Losing Bluetooth or Internet must not stop recording.
+The capture process is deliberately independent from networking. Component details: [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md); overview: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Planned services
+## Working on this repository
 
-- `tspcam-recorder` — camera capture and file segmentation.
-- `tspcam-api` — lightweight local status/configuration API and web UI.
-- `tspcam-bt` — Bluetooth pairing/PAN connectivity.
-- `tspcam-sync` — offline queue and TSP OS synchronization.
-- `tspcam-health` — storage, camera, RTC, temperature and recording checks.
+The project is developed by the owner together with two AI agents (Claude and ChatGPT) through pull requests. **Read [AGENTS.md](AGENTS.md) first.**
 
-See `docs/ARCHITECTURE.md` and `docs/ROADMAP.md`.
+## Documents
 
-## Project source of truth
+Start here:
+- [AGENTS.md](AGENTS.md) — working rules, roles, source-of-truth precedence.
+- [docs/STATUS.md](docs/STATUS.md) — what is done, in progress and waiting for decisions.
+- [docs/DECISIONS.md](docs/DECISIONS.md) — decisions in force.
+- [docs/PROJECT_BRIEF.md](docs/PROJECT_BRIEF.md) — owner's product brief (Polish).
 
+Specifications:
+- [FIELD_OPERATION_SPEC](docs/FIELD_OPERATION_SPEC.md) — confirmed boot recording, USB retention, time modes and shutdown behaviour.
 - [MASTER_PLAN](docs/MASTER_PLAN.md) — overall design, implementation order and acceptance gates.
 - [FIELD_REQUIREMENTS](docs/FIELD_REQUIREMENTS.md) — field device requirements.
-- [INSTALL_AND_UPDATES](docs/INSTALL_AND_UPDATES.md) — secure OTA design.
+- [INSTALL_AND_UPDATES](docs/INSTALL_AND_UPDATES.md) — installer and secure OTA design.
+- [TECHNICAL_RISK_AUDIT](docs/TECHNICAL_RISK_AUDIT.md) — known risks, corrected assumptions, failure tests.
+- [RECOMMENDED_STACK](docs/RECOMMENDED_STACK.md) — researched OS, camera, encoding and reliability choices.
+- [ARCHITECTURE](docs/ARCHITECTURE.md) — short system overview.
+- [ROADMAP](docs/ROADMAP.md) — delivery phases.
 
-Status: design only; no deployable installer or camera recorder has yet been implemented.
-
-- [TECHNICAL_RISK_AUDIT](docs/TECHNICAL_RISK_AUDIT.md) — known design risks, corrected assumptions, and preproduction failure tests.
-- [RECOMMENDED_STACK](docs/RECOMMENDED_STACK.md) — researched OS, camera drivers, encoding and reliability defaults.
-- [FIELD_OPERATION_SPEC](docs/FIELD_OPERATION_SPEC.md) — confirmed boot recording, USB retention, time-setting modes and shutdown behavior.
-- [MARKET_PROJECT_RESEARCH](docs/MARKET_PROJECT_RESEARCH.md) — comparison of traffic survey industry products and Raspberry Pi camera projects, with transferable ideas and sources.
+Background:
+- [MARKET_PROJECT_RESEARCH](docs/MARKET_PROJECT_RESEARCH.md) — traffic-survey products and Raspberry Pi camera projects (research, not commitments).
+- [DECISION_HISTORY](docs/DECISION_HISTORY.md) — superseded decisions (history only).

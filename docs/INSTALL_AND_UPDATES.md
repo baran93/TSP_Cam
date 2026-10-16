@@ -30,8 +30,8 @@ Invariants:
 /var/lib/tspcam/updates.db
 /var/lib/tspcam/update-transaction.json
 /var/backups/tspcam/
-/media/tspcam/TSP_Box_030/recordings/
-/media/tspcam/TSP_Box_030/logs/
+/media/tspcam/<BOX_ID>/...        # recordings; exact layout: open question in docs/STATUS.md
+/media/tspcam/<BOX_ID>/logs/
 ```
 
 `/opt/tspcam` is on the OS microSD, NOT on the USB to be formatted. Keep recorder data outside release directory. Dedicated Unix user for recorder and web service; updater is a separate privileged narrow service.
@@ -41,7 +41,7 @@ Invariants:
 - Publish versioned GitHub Releases (`vMAJOR.MINOR.PATCH`) with a package, signed manifest, changelog, minimum OS/architecture, schema constraints, size and SHA-256.
 - Verify signing key pinned in the device and detached cryptographic signature of manifest; compare expected artifact SHA-256 and size. HTTPS transport alone and unsigned hashes are not adequate authenticity guarantees.
 - Device should receive **read-only** access to published assets only; no GitHub write token anywhere in box configuration.
-- Private repo: avoid placing a long-lived PAT on 200 field cameras. Preferred production architecture: TSP OS / controlled release mirror exposes **only signed release bundles**, using short-lived scoped download authorization. For initial single-device pilot, explicitly provision a read-only token securely with strict file permissions and planned rotation; use this only temporarily.
+- Private repo: avoid placing a long-lived PAT on hundreds of field cameras. Preferred production architecture: TSP OS / controlled release mirror exposes **only signed release bundles**, using short-lived scoped download authorization. For initial single-device pilot, explicitly provision a read-only token securely with strict file permissions and planned rotation; use this only temporarily.
 - No automatic update from `main`; require published stable release and explicit technician confirmation.
 - Reject downgrade unless authorized recovery action; reject incompatible architecture/sensor/OS and dangerous schema migrations.
 - Protect signing private key outside camera and repo secrets; plan key rotation and emergency revocation.
