@@ -8,7 +8,7 @@ TSP_Cam replaces MotionEye on Traffic Survey Partners (TSP) field cameras: Raspb
 
 **Current status: design only.** No recorder, installer or panel code exists yet, and nothing has been tested on real hardware. Always state whether something is *implemented*, *planned* or *experimental*, and mark hardware claims as *unverified on Zero 2 W* until a test proves them.
 
-The owner's own product brief (Polish, original wording) is [docs/PROJECT_BRIEF.md](docs/PROJECT_BRIEF.md).
+The product brief (Polish) is [docs/PROJECT_BRIEF.md](docs/PROJECT_BRIEF.md). ChatGPT compiled it from the owner's requirements and the owner supplied it on 2026-10-16; it is not the owner's verbatim text, and its confirmation as the approved product description is pending (STATUS Q7).
 
 ## 2. Who does what
 
@@ -37,7 +37,7 @@ Read, in this order:
 When two documents disagree, the higher one wins:
 
 1. [docs/DECISIONS.md](docs/DECISIONS.md) — owner decisions currently in force.
-2. [docs/PROJECT_BRIEF.md](docs/PROJECT_BRIEF.md) — owner's product brief.
+2. [docs/PROJECT_BRIEF.md](docs/PROJECT_BRIEF.md) — product brief compiled from the owner's requirements (confirmation pending, STATUS Q7).
 3. [docs/FIELD_OPERATION_SPEC.md](docs/FIELD_OPERATION_SPEC.md) — confirmed field behaviour.
 4. [docs/TECHNICAL_RISK_AUDIT.md](docs/TECHNICAL_RISK_AUDIT.md) — risk findings override premature technical defaults.
 5. [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md), [docs/FIELD_REQUIREMENTS.md](docs/FIELD_REQUIREMENTS.md), [docs/INSTALL_AND_UPDATES.md](docs/INSTALL_AND_UPDATES.md), [docs/RECOMMENDED_STACK.md](docs/RECOMMENDED_STACK.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ROADMAP.md](docs/ROADMAP.md).
@@ -49,10 +49,10 @@ Precedence is a safety net, not a licence to leave contradictions in place. If y
 
 ## 5. Workflow rules
 
-1. **`main` is protected.** No agent writes to `main` directly. Every change goes through a pull request from a branch named `<agent>/<short-task>`, e.g. `claude/recorder-skeleton`, `chatgpt/ota-review-fixes`.
+1. **No direct writes to `main`.** This organisational rule is in force now. GitHub branch protection is **not enabled yet** (see *Owner actions* in `docs/STATUS.md`); until it is, the rule relies on the agents' discipline. Every change goes through a pull request from a branch named `<agent>/<short-task>`, e.g. `claude/recorder-skeleton`, `chatgpt/ota-review-fixes`.
 2. **One PR = one logical task.** Group commits by meaning, not one commit per file.
 3. **Every PR updates [docs/STATUS.md](docs/STATUS.md)**: completed work, open problems, next steps, current assignment.
-4. **Mandatory cross-review.** Implementer opens the PR → the other agent reviews → the owner decides and merges.
+4. **Mandatory cross-review.** Implementer opens the PR → the other agent reviews → the owner decides and merges. Both agents currently act through the owner's GitHub account (`baran93`), so GitHub cannot record a formal approval from a second account. The review is therefore a signed review comment in the PR discussion (section 7), and the owner's merge is the acceptance.
 5. **Only the owner decides.** When the owner changes a decision, in the same PR:
    - update the entry in `docs/DECISIONS.md`;
    - move the previous wording to `docs/DECISION_HISTORY.md`;
@@ -72,7 +72,7 @@ Full wording in [docs/DECISIONS.md](docs/DECISIONS.md). In short:
 - **Autostart:** recording starts by itself when a working USB drive is detected.
 - **Power Down:** closes the recording safely and shuts down the whole Raspberry Pi.
 - **Recording is independent** of Bluetooth, Wi-Fi, Internet, the panel and TSP OS.
-- **Bluetooth is primary**; emergency Wi-Fi AP only for the first 15 minutes after boot.
+- **Bluetooth is primary.** The emergency Wi-Fi AP switches on automatically at **every boot**, whatever the Bluetooth or phone state, and switches off by itself after 15 minutes. Extending it or re-enabling it later is an open question (STATUS Q4), neither allowed nor ruled out.
 
 ## 7. Agent signature
 
@@ -88,7 +88,7 @@ The signature describes authorship; it is **not** technical proof of it (commits
 
 ## 8. Engineering principles
 
-From the owner's brief:
+From the product brief:
 
 1. Recording reliability beats extra features.
 2. Minimise CPU, RAM and energy use.
@@ -100,10 +100,16 @@ From the owner's brief:
 8. Propose improvements, find architecture flaws, anticipate failure modes.
 9. Keep implemented, planned and experimental features clearly separated.
 
-Hard constraints: Raspberry Pi OS Lite 32-bit; no Docker; no motion detection or on-device AI; one process owns the camera; no CPU (software) video encoding. See [docs/RECOMMENDED_STACK.md](docs/RECOMMENDED_STACK.md).
+Agreed (product brief and [docs/DECISIONS.md](docs/DECISIONS.md)): Raspberry Pi OS Lite 32-bit (D13); continuous recording, not motion-triggered; libcamera + Picamera2 with hardware H.264 encoding for the recording.
+
+Current technical recommendations from [docs/RECOMMENDED_STACK.md](docs/RECOMMENDED_STACK.md). They are **not owner decisions**; deviate only with a stated reason and the owner's approval:
+- one process owns the camera; preview shares its streams instead of opening the sensor again;
+- no software (CPU) encoding of the continuous full-frame recording; a low-rate software JPEG preview (about 2 FPS) is fine;
+- do not require Docker on field cameras;
+- no on-device AI or object detection in the MVP — deferred to later phases ([docs/ROADMAP.md](docs/ROADMAP.md)), not ruled out.
 
 ## 9. Conventions
 
-- Repository documents are written in **English**. Conversation with the owner and PR descriptions are in **Polish**. The owner's brief stays in its original Polish.
+- Language — **proposal, pending owner decision (STATUS Q6):** repository documents in English, conversation with the owner and PR descriptions in Polish. Until the owner decides, follow the existing practice. The product brief stays in Polish.
 - Dates are ISO (`2026-10-16`). Times in documents are local site time unless marked UTC.
 - Keep documents short and non-duplicated: state a fact once and link to it, rather than copying it into several files.

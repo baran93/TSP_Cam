@@ -7,7 +7,7 @@ Short overview only. Binding behaviour is in [DECISIONS.md](DECISIONS.md) and [F
 1. Recording is the highest-priority function.
 2. Recording does not depend on Bluetooth, Wi-Fi, Internet, the web panel or TSP OS (D2).
 3. Offline first (D4).
-4. Bluetooth is the normal service link; Wi-Fi runs only as an emergency AP for the first 15 minutes after boot (D3).
+4. Bluetooth is the normal service link. An emergency Wi-Fi AP switches on automatically at every boot and off after 15 minutes (D3); extending or re-enabling it later is undecided (Q4).
 5. Everything must fit Raspberry Pi Zero 2 W (512 MB RAM) and minimise CPU and power use.
 6. A camera failure, missing or full USB drive, or bad RTC is reported clearly, never hidden.
 7. Configuration changes are validated, persistent and auditable.
@@ -25,7 +25,7 @@ Planned systemd services (logical split; may be merged if 512 MB RAM measurement
 | `tspcam-capture` | The only camera owner: hardware H.264, hourly MP4 segmentation, burned-in stamp, low-res frames for preview, progress counters, safe stop. |
 | `tspcam-control` | Small authenticated HTTP server and mobile web panel: status, configuration, diagnostics, on-demand preview, service actions (restart capture, reboot, Power Down). Never owns the recorder lifecycle; runs as non-root; does not decode or process video when nobody is viewing. |
 | `tspcam-agent` | Health probes and durable event log, independent of the browser. |
-| `tspcam-connectivity` | Bluetooth PAN client and the 15-minute emergency Wi-Fi AP. |
+| `tspcam-connectivity` | Bluetooth PAN client and the emergency Wi-Fi AP (automatic for 15 minutes after every boot). |
 | `tspcam-updater` | Narrowly privileged signed-release installer with rollback ([INSTALL_AND_UPDATES.md](INSTALL_AND_UPDATES.md)). |
 | `tspcam-sync` | Optional deferred upload to TSP OS. A local SQLite queue holds events (installation/update, health, recording start/stop, USB/storage, RTC/time, errors, battery when supported); unsent events are uploaded when the phone provides Internet and marked as synchronised. |
 

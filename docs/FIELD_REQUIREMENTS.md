@@ -27,8 +27,9 @@ Status: initial product assumptions; hardware validation required. Aligned with 
 
 ## Connectivity
 - Bluetooth primary for setup, diagnostics and temporary Internet via technician's phone; validate PAN/tethering behavior by Android phone model and OS version (technicians use Android, D5).
-- Emergency Wi-Fi access point automatically active during first **15 minutes after every boot**, with unique SSID and strong unique password.
-- AP auto-off after 15 minutes, extendable from authenticated panel and re-openable through a documented physical service/recovery method (method not chosen yet, see [STATUS.md](STATUS.md)).
+- Emergency Wi-Fi access point automatically active during the first **15 minutes after every boot**, regardless of Bluetooth or phone state (D3), with unique SSID and strong unique password.
+- AP switches off automatically after 15 minutes.
+- **Not decided (Q4 in [STATUS.md](STATUS.md)):** extending the AP from the authenticated panel, or re-opening it later without a reboot (e.g. a documented physical method). These are proposals from the risk audit, not requirements.
 - Wi-Fi and Bluetooth can coexist but need field testing for radio/power interference on Zero 2 W.
 - Wi-Fi AP should be access-restricted; no default shared fleet-wide password.
 - Networking and panel crashes may **never** stop local recording.

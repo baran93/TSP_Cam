@@ -1,6 +1,6 @@
 # TSP_Cam — Raspberry Pi Camera System
 
-> Product brief written by the owner (baran93), original Polish wording, added 2026-10-16.
+> Product brief compiled by ChatGPT from the owner's (baran93) requirements and supplied by the owner on 2026-10-16. It is not the owner's verbatim text. Confirmation as the approved product description is pending ([STATUS.md](STATUS.md) Q7). Text below unchanged from the supplied version.
 > Decisions in [DECISIONS.md](DECISIONS.md) take precedence over this brief; see [AGENTS.md](../AGENTS.md) §4.
 
 ## Cel projektu

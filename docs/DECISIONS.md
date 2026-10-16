@@ -12,9 +12,13 @@ Decisions marked **settled** were explicitly re-confirmed by the owner on 2026-1
 
 *Since 2026-10-08.* Recording never depends on or waits for Bluetooth, Wi-Fi, Internet, the web panel, GitHub or TSP OS. A failure in any of them must not interrupt recording.
 
-## D3. Bluetooth first, Wi-Fi only as a 15-minute emergency AP
+## D3. Bluetooth first; emergency Wi-Fi AP for 15 minutes after every boot — **settled**
 
-*Since 2026-10-08.* Bluetooth is the primary link: the technician's Android phone provides Bluetooth tethering (NAP), the Pi is the PANU client (`bnep*` interface), giving access to the panel and optionally the phone's Internet. Wi-Fi runs only as an emergency access point during the first 15 minutes after every boot, with per-unit credentials, then switches off automatically. Details: [FIELD_REQUIREMENTS.md](FIELD_REQUIREMENTS.md) *Connectivity*.
+*Since 2026-10-08, boot behaviour re-confirmed by the owner 2026-10-16.* Bluetooth is the primary link: the technician's Android phone provides Bluetooth tethering (NAP), the Pi is the PANU client (`bnep*` interface), giving access to the panel and optionally the phone's Internet.
+
+The emergency Wi-Fi access point switches on automatically at **every boot**, whether or not Bluetooth works or a phone is connected. It stays on for the first 15 minutes and then switches off by itself. It is a standard boot-time window, not a mode triggered by a Bluetooth failure. Per-unit credentials. Recording depends on neither link (D2).
+
+**Not decided:** extending the AP or re-enabling it after the 15 minutes (panel, physical button, …) — open question Q4 in [STATUS.md](STATUS.md). Details: [FIELD_REQUIREMENTS.md](FIELD_REQUIREMENTS.md) *Connectivity*.
 
 ## D4. Offline first
 
@@ -58,4 +62,4 @@ Decisions marked **settled** were explicitly re-confirmed by the owner on 2026-1
 
 ## D14. Collaboration workflow
 
-*Since 2026-10-16.* Claude and ChatGPT work on the repository only through pull requests; `main` is protected. One agent implements, the other reviews, the owner decides and merges. Every PR updates [STATUS.md](STATUS.md). Rules: [AGENTS.md](../AGENTS.md).
+*Since 2026-10-16.* Claude and ChatGPT change the repository only through pull requests; nobody writes to `main` directly. This is an organisational rule; GitHub branch protection is not enabled yet (owner action in [STATUS.md](STATUS.md)). One agent implements, the other reviews in a signed PR comment, the owner decides and merges. Both agents currently act through the owner's GitHub account, so a formal approval from a second account is not possible. Every PR updates [STATUS.md](STATUS.md). Rules: [AGENTS.md](../AGENTS.md).

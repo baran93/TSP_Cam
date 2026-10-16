@@ -1,6 +1,6 @@
 # Project status
 
-**Last updated:** 2026-10-16 by Claude, PR #1 (branch `claude/consolidate-docs`).
+**Last updated:** 2026-10-16 by Claude, PR #1 (branch `claude/consolidate-docs`), after ChatGPT's review.
 Every PR updates this file ([AGENTS.md](../AGENTS.md) §5.3).
 
 ## Phase
@@ -11,12 +11,13 @@ Every PR updates this file ([AGENTS.md](../AGENTS.md) §5.3).
 
 | Task | Implementer | Reviewer | State |
 |---|---|---|---|
-| Collaboration rules and documentation consolidation (PR #1) | Claude | ChatGPT | PR open, waiting for review and owner decision |
+| Collaboration rules and documentation consolidation (PR #1) | Claude | ChatGPT | Reviewed: 5 fixes requested, all applied. Waiting for ChatGPT's re-check and the owner's merge. |
 
 ## Done
 
 - **2026-10-08** — Design documentation written by ChatGPT with the owner: master plan, field requirements, field operation contract, OTA design, technical risk audit, recommended stack, market research.
-- **2026-10-16** — Shared rules for both agents ([AGENTS.md](../AGENTS.md)), owner brief added ([PROJECT_BRIEF.md](PROJECT_BRIEF.md)), [DECISIONS.md](DECISIONS.md) reduced to decisions in force with history in [DECISION_HISTORY.md](DECISION_HISTORY.md), contradictions between documents removed or flagged below.
+- **2026-10-16** — Shared rules for both agents ([AGENTS.md](../AGENTS.md)), product brief added ([PROJECT_BRIEF.md](PROJECT_BRIEF.md)), [DECISIONS.md](DECISIONS.md) reduced to decisions in force with history in [DECISION_HISTORY.md](DECISION_HISTORY.md), contradictions between documents removed or flagged below.
+- **2026-10-16** — First cross-review: ChatGPT reviewed PR #1 and requested 5 fixes (language as a proposal, technical recommendations vs decisions, branch protection not yet enabled, Wi-Fi wording, brief authorship). Claude applied them in the same PR. The owner confirmed the Wi-Fi boot behaviour (D3).
 
 ## Open questions for the owner
 
@@ -26,19 +27,25 @@ Found while aligning the documents. Flagged, not resolved; none of them reopens 
 - (a) Will the TSP AI/OCR be adapted to the new position? Who tests it, and on which sample footage?
 - (b) Glyph style is undecided: the plan described white text on a semi-transparent dark box, the requirements described white block glyphs with a dark outline (MotionEye style). Suggestion: decide after an OCR test of both.
 
-**Q2. Folder and filename layout on USB.** The documents had two different examples (`TSP-PiCam-004/<date>/<date-time>` and `TSP_Box_030/recordings/`). The field contract says to keep the existing convention (`%Y-%m-%d-%H-%M-%S` under per-unit/per-date folders). Needed: a real path from a current MotionEye USB drive and the exact Box ID format. Related design point: the old architecture suggested giving the file being written a temporary suffix and renaming it on clean close. That was not carried over, because a file cut by power loss would then reach the office under a non-standard name; it is to be settled together with the layout.
+**Q2. Folder and filename layout on USB.** The documents had two different examples (`TSP-PiCam-004/<date>/<date-time>` and `TSP_Box_030/recordings/`). The field contract says to keep the existing convention (`%Y-%m-%d-%H-%M-%S` under per-unit/per-date folders). Needed: a real path from a current MotionEye USB drive and the exact Box ID format. Hint from ChatGPT's earlier conversations with the owner (PiCam004 settings, **not confirmed as the fleet standard**): `target_dir /media/usb0`, `movie_filename TSP-PiCam004/%Y-%m-%d/%Y-%m-%d-%H-%M-%S`. Related design point: the old architecture suggested giving the file being written a temporary suffix and renaming it on clean close. That was not carried over, because a file cut by power loss would then reach the office under a non-standard name; it is to be settled together with the layout.
 
 **Q3. Default recording profile.** Candidates: 1280×960@30 (full field of view), 1080p30 (centre-cropped on OV5647), 800×600 (legacy). Suggested rule: decide after the field-of-view, OCR and 48 h tests (Gate B). Confirm the rule or set a default.
 
-**Q4. Wi-Fi after the first 15 minutes.** The brief says the AP runs for 15 minutes and switches off. The requirements and risk audit additionally assume the window can be extended from the panel and re-opened by a physical method (button, reed switch, …) if Bluetooth fails later. Confirm both additions and choose the physical method (hardware change).
+**Q4. Wi-Fi after the first 15 minutes.** Decided (D3, confirmed 2026-10-16): the AP switches on automatically at every boot, regardless of Bluetooth, and switches off after 15 minutes. Still open: after those 15 minutes, should it be possible to (a) extend the AP from the panel, or (b) re-enable it without rebooting the camera, e.g. with a physical button or reed switch (a hardware change)? The risk audit recommends a recovery path: if Bluetooth fails at hour 3, today the only way back in is a reboot.
 
 **Q5. Fleet size.** The OTA documents assumed about 200 units; the brief mentions about 400 OV5647 modules. How many Pi units will run TSP_Cam? This affects update rollout and credential distribution.
 
-**Q6. Language.** Proposed in AGENTS.md: repository documents in English, PR descriptions and discussion in Polish. Confirm or change.
+**Q6. Language.** Proposal written in AGENTS.md §9 (marked as a proposal): repository documents in English, PR descriptions and discussion in Polish. Confirm or change.
+
+**Q7. Product brief.** [PROJECT_BRIEF.md](PROJECT_BRIEF.md) was compiled by ChatGPT from your requirements, not written by you word for word. It ranks second in the precedence list ([AGENTS.md](../AGENTS.md) §4), so please confirm it as the approved product description or say what to change.
 
 ## Owner actions
 
-- **Enable branch protection on `main`** in GitHub repository settings: require a pull request before merging and do not allow bypassing the rule. Until then, "`main` is protected" is only a written rule. Earlier changes reached `main` directly under the owner's account; protection closes that path for both agents.
+- **Enable branch protection on `main`** in GitHub repository settings (not enabled as of 2026-10-16):
+  - require a pull request before merging;
+  - **leave "require approvals" off** — both agents work through your account, and GitHub does not let an account approve its own pull request, so required approvals would block every merge;
+  - block force pushes and branch deletion, and do not allow bypassing the rules.
+  Until this is on, "no direct writes to `main`" is an organisational rule only. Earlier changes reached `main` directly under your account; protection closes that path for both agents.
 
 ## Pending hardware measurements
 
@@ -58,7 +65,7 @@ The P0/P1 list in [TECHNICAL_RISK_AUDIT.md](TECHNICAL_RISK_AUDIT.md) is current 
 ## Next steps
 
 Proposed order; the owner assigns implementer and reviewer for each task.
-1. ChatGPT reviews this PR. The owner answers Q1–Q6 (PR comments are fine) and merges.
+1. ChatGPT re-checks the fixes in PR #1. The owner answers Q1–Q7 (PR comments are fine; answers can also come later) and merges.
 2. Hardware bring-up on one Zero 2 W + OV5647: run the read-only checklist from [RECOMMENDED_STACK.md](RECOMMENDED_STACK.md) and commit the results. Needs the owner with the hardware.
 3. Phase 0 code: Python package skeleton, tests, systemd unit stubs, read-only diagnostics command.
 4. Phase 1 recorder MVP: hardware H.264 to hourly MP4 at clock boundaries, autostart on USB, 48 h test.

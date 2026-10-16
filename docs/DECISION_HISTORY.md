@@ -68,7 +68,7 @@ Previously in FIELD_REQUIREMENTS.md:
 
 > - Bluetooth primary for setup, diagnostics and temporary Internet via technician's phone; validate PAN/tethering behavior by Android/iPhone version.
 
-Technicians use Android phones (**D5**, owner brief).
+Technicians use Android phones (**D5**, product brief).
 
 ### H7. Undefined boot policy for invalid time
 
@@ -117,7 +117,7 @@ Replaced by the component model in MASTER_PLAN.md (`tspcam-capture`, `tspcam-con
 
 ### H10. Fleet size "200"
 
-INSTALL_AND_UPDATES.md and TECHNICAL_RISK_AUDIT.md referred to 200 field cameras; the owner brief mentions about 400 OV5647 modules. Wording changed to "hundreds of units"; the actual number of deployed Pi units is an open question in [STATUS.md](STATUS.md).
+INSTALL_AND_UPDATES.md and TECHNICAL_RISK_AUDIT.md referred to 200 field cameras; the product brief mentions about 400 OV5647 modules. Wording changed to "hundreds of units"; the actual number of deployed Pi units is an open question in [STATUS.md](STATUS.md).
 
 ### H11. Inline "superseded" notes
 
