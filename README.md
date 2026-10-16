@@ -11,7 +11,7 @@ Lightweight Raspberry Pi camera system for TSP, designed to replace MotionEye on
 - Recording starts by itself on a working USB drive and never depends on Bluetooth, Wi-Fi, Internet, the panel or TSP OS.
 - MP4 files split at full wall-clock hours; never overwritten, never deleted automatically.
 - In-video stamp in the bottom-right corner: date, time, TSP logo, Box number.
-- Bluetooth PAN to the technician's Android phone for the panel and temporary Internet; emergency Wi-Fi AP switches on automatically at every boot and off after 15 minutes.
+- Bluetooth to the technician's phone (Android or iPhone): BLE to find the camera, Classic PAN for the panel and temporary Internet; emergency Wi-Fi AP switches on automatically at every boot and off after 15 minutes.
 - RTC keeps time offline; NTP corrects it when the phone provides Internet.
 - Offline-first status/log queue with later sync to TSP OS.
 - Small authenticated local panel for setup, diagnostics and safe Power Down.

@@ -10,11 +10,13 @@ Decisions marked **settled** were explicitly re-confirmed by the owner on 2026-1
 
 ## D2. Recording is independent of networking
 
-*Since 2026-10-08.* Recording never depends on or waits for Bluetooth, Wi-Fi, Internet, the web panel, GitHub or TSP OS. A failure in any of them must not interrupt recording.
+*Since 2026-10-08, amended 2026-10-16.* Recording never depends on or waits for Bluetooth, Wi-Fi, Internet, the web panel, GitHub or TSP OS. A failure in any of them must not interrupt recording.
+
+**Single exception (owner, 2026-10-16):** when the camera's own Bluetooth cannot be recovered (a missing phone never counts), the camera may reboot itself **once per power-on period**, which briefly interrupts recording (D15). The gap is logged. There is no second automatic reboot.
 
 ## D3. Bluetooth first; emergency Wi-Fi AP for 15 minutes after every boot — **settled**
 
-*Since 2026-10-08, boot behaviour re-confirmed by the owner 2026-10-16.* Bluetooth is the primary link: the technician's Android phone provides Bluetooth tethering (NAP), the Pi is the PANU client (`bnep*` interface), giving access to the panel and optionally the phone's Internet.
+*Since 2026-10-08, boot behaviour re-confirmed by the owner 2026-10-16.* Bluetooth is the primary link: the technician's phone (D5) provides Bluetooth tethering (NAP), the Pi is the PANU client (`bnep*` interface), giving access to the panel and optionally the phone's Internet. How a Bluetooth session is started: D15.
 
 The emergency Wi-Fi access point switches on automatically at **every boot**, whether or not Bluetooth works or a phone is connected. It stays on for the first 15 minutes and then switches off by itself. It is a standard boot-time window, not a mode triggered by a Bluetooth failure. Per-unit credentials. Recording depends on neither link (D2).
 
@@ -26,7 +28,9 @@ The emergency Wi-Fi access point switches on automatically at **every boot**, wh
 
 ## D5. Target hardware and technician phones
 
-*Since 2026-10-08.* First production target: Raspberry Pi Zero 2 W (512 MB RAM) with OV5647 5 MP camera modules, USB recording drive and RTC module. Mains power for testing, battery in the target design. Technicians use Android phones. Resource use is judged on Zero 2 W, not on a faster development Pi.
+*Since 2026-10-08, phones amended 2026-10-16.* First production target: Raspberry Pi Zero 2 W (512 MB RAM) with OV5647 5 MP camera modules, USB recording drive and RTC module. Mains power for testing, battery in the target design. Resource use is judged on Zero 2 W, not on a faster development Pi.
+
+Technician phones: **Android and iPhone** must both work (owner, 2026-10-16). How an iPhone sends the BLE request is open (Q9 in [STATUS.md](STATUS.md)).
 
 ## D6. Autostart recording — **settled**
 
@@ -63,3 +67,37 @@ The emergency Wi-Fi access point switches on automatically at **every boot**, wh
 ## D14. Collaboration workflow
 
 *Since 2026-10-16.* Claude and ChatGPT change the repository only through pull requests; nobody writes to `main` directly. This is an organisational rule; GitHub branch protection is not enabled yet (owner action in [STATUS.md](STATUS.md)). One agent implements, the other reviews in a signed PR comment, the owner decides and merges. Both agents currently act through the owner's GitHub account, so a formal approval from a second account is not possible. Every PR updates [STATUS.md](STATUS.md). Rules: [AGENTS.md](../AGENTS.md).
+
+## D15. Bluetooth session: BLE discovery, then Classic PAN
+
+*Since 2026-10-16.* Accepted direction for how the technician's phone reaches the camera.
+
+**Why Bluetooth (owner, 2026-10-16):** the phone must give the **camera** Internet over Bluetooth PAN — above all to get the correct time (NTP → system clock and RTC, D9), later also for TSP OS sync — while the technician uses the panel. When the camera runs the Wi-Fi AP it has no Internet of its own, which complicates getting the time. It must work with Android and iPhone (D5).
+
+
+1. **Waiting:** while recording, the camera advertises its presence over Bluetooth Low Energy — the low-power discovery channel.
+2. **Request:** the technician's phone connects over BLE and sends an authenticated request.
+3. **Session:** the camera sets up a Bluetooth Classic PAN connection to the phone (Pi = PANU, phone = NAP via Bluetooth tethering) for the full web panel, configuration, diagnostics and the phone's Internet.
+4. **End:** when the phone disconnects, or no PAN link is established within a timeout, the camera returns to BLE advertising.
+
+BLE and Classic are two link types of the same radio controller; switching between them means activating services, not powering the module on or off. Recording never depends on any of this (D2).
+
+**Bluetooth recovery** (owner, 2026-10-16):
+
+*A missing phone is not a Bluetooth failure.* No phone nearby, tethering or Personal Hotspot switched off, weak signal, refused authorisation or no NAP offered: the camera keeps recording and keeps waiting, with rate-limited connection attempts. **This never leads to a reboot.**
+
+Only a failure of the camera's **own** Bluetooth counts — the controller or BlueZ stops responding, or the adapter cannot be powered or advertise, as confirmed by a self-test:
+1. In the connectivity service, without stopping recording and rate-limited: restart the Bluetooth service → reset the Bluetooth controller → reload the Bluetooth driver. Repeated for a few rounds (owner suggested 3; exact number set during testing).
+2. If the camera's Bluetooth still does not work: **one** automatic reboot of the whole Pi, recording included (exception to D2). After it the boot-time Wi-Fi window (D3) applies as on every boot.
+3. If it still fails after that reboot: **emergency mode** — keep recording as long as possible until the camera is physically switched off. No further automatic reboots, no further radio recovery attempts, no extra Wi-Fi.
+4. No periodic Wi-Fi as a Bluetooth fallback: it would drain the battery while nobody is at the camera.
+
+Every step, the reboot and the recording gap are logged. Intended limit: one automatic reboot per power-on period. A Pi cannot reliably tell a software reboot from a physical power cut, so how this limit is enforced is open (Q8a in [STATUS.md](STATUS.md)).
+
+**Phone-side client:** a **Web Bluetooth** page (owner, 2026-10-16), chosen so that the same client can serve Android and iPhone (D5). Web Bluetooth works only on secure (HTTPS) pages, so the page cannot be served by the camera over plain `http://`; it must be hosted over HTTPS and kept available offline on the phone.
+
+**Not decided:**
+- **conflict with D5:** Safari on iPhone does not support Web Bluetooth, so the BLE step cannot work on an iPhone without an extra app. Both agents recommend prototyping Classic PAN with ordinary system pairing first (camera connects to trusted phones; no app on either platform) — owner decision pending (Q9 in [STATUS.md](STATUS.md)); also how phones are authorised and who builds and hosts the page;
+- whether BLE waiting saves enough energy to justify the extra client: to be measured on Zero 2 W before production.
+
+Requirements and technical constraints: [FIELD_REQUIREMENTS.md](FIELD_REQUIREMENTS.md) *Bluetooth session flow*.

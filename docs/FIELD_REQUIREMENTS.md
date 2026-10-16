@@ -26,13 +26,28 @@ Status: initial product assumptions; hardware validation required. Aligned with 
 - Use UTC machine-readable timestamps and preserve local/field time for display. Track clock corrections.
 
 ## Connectivity
-- Bluetooth primary for setup, diagnostics and temporary Internet via technician's phone; validate PAN/tethering behavior by Android phone model and OS version (technicians use Android, D5).
+- Bluetooth primary for setup, diagnostics and temporary Internet via technician's phone; validate PAN/tethering behavior by phone model and OS version, Android and iPhone (D5).
 - Emergency Wi-Fi access point automatically active during the first **15 minutes after every boot**, regardless of Bluetooth or phone state (D3), with unique SSID and strong unique password.
 - AP switches off automatically after 15 minutes.
 - **Not decided (Q4 in [STATUS.md](STATUS.md)):** extending the AP from the authenticated panel, or re-opening it later without a reboot (e.g. a documented physical method). These are proposals from the risk audit, not requirements.
 - Wi-Fi and Bluetooth can coexist but need field testing for radio/power interference on Zero 2 W.
 - Wi-Fi AP should be access-restricted; no default shared fleet-wide password.
-- Networking and panel crashes may **never** stop local recording.
+- Networking and panel crashes may **never** stop local recording. Single exception: one automatic reboot per power-on period when the camera's own Bluetooth cannot be recovered; a missing phone never counts (D2, D15).
+
+## Bluetooth session flow (D15)
+Status: **planned, not implemented; unverified on Zero 2 W and on technicians' phones.** The BLE step conflicts with iPhone support (Q9); the Classic PAN part below is needed in every variant.
+- **Purpose:** the phone gives the camera Internet over PAN — first of all for NTP time (D9), later TSP OS sync — and the technician reaches the panel over the same link.
+- **Waiting:** BLE advertising with a TSP GATT service (BlueZ GATT server). Advertised name identifies the unit (e.g. Box ID; exact format follows Q2 in [STATUS.md](STATUS.md)).
+- **Request:** the phone connects over BLE and writes a defined, authenticated command to the GATT service. Plain BLE advertising, or pairing from the phone's Bluetooth settings, does **not** start PAN on its own — a phone-side client is required. Decided: a **Web Bluetooth** page (D15). Chrome on Android supports Web Bluetooth; Safari on iPhone does not, so the iPhone path is open (Q9). Web Bluetooth requires a secure (HTTPS) page, so the camera cannot serve it over plain `http://`; it must be hosted over HTTPS and available offline on the phone.
+- **Session:** on a valid request the camera calls BlueZ `Network1.Connect("nap")` to the phone's Bluetooth tethering. The camera cannot switch tethering on; the technician must enable it on the phone (Android: Bluetooth tethering; iPhone: Personal Hotspot, which Linux reportedly reaches over Bluetooth PAN — to be tested). The camera must learn the phone's Classic address from bonding or from the request itself (Android uses changing BLE addresses) — verify on real phones.
+- **Panel over PAN:** a working Internet link on the camera does not prove that the phone's browser can open the camera's panel over the same PAN link. Test on Android and iPhone, including how the technician finds the camera's IP address on the tethering network.
+- **Security:** never start PAN for an anonymous BLE connection. Require bonding or another authorisation, rate-limit requests, and optionally keep an allowlist of known technician phones.
+- **End:** phone disconnects, or no PAN link within a timeout of a few minutes (value to be set after tests) → back to BLE advertising.
+- **Phone unavailable ≠ Bluetooth failure** (D15): no phone, tethering/hotspot off, weak signal, refused authorisation or no NAP → keep recording, keep waiting, rate-limited reconnect attempts; never a reboot.
+- **Recovery** (D15), only for a failure of the camera's own Bluetooth confirmed by a self-test (controller or BlueZ not responding, adapter cannot power on or advertise): in `tspcam-connectivity`, independent of `tspcam-capture`, rate-limited, restart Bluetooth service → reset controller → reload Bluetooth driver, for a few rounds, recording continues. Still failing → one automatic reboot of the Pi (recording included). Still failing after that reboot → emergency mode: record only, until physical power-off; no more reboots, radio recovery or extra Wi-Fi. How the one-reboot limit is enforced is open (Q8a). Every step and the recording gap are logged.
+- **Proposal, to confirm:** perform the automatic reboot right after the next full-hour file split, so the current MP4 is closed cleanly and only a short gap at the start of the next file is lost.
+- **Coexistence:** BLE, Classic PAN and the boot-time Wi-Fi AP share one radio; test them running together during the first 15 minutes after boot.
+- **Measure** on Zero 2 W while recording 24/7 (plan in [STATUS.md](STATUS.md), *Pending hardware measurements*). Do not promise energy savings before the measurement.
 
 ## Technician UX
 - Mobile-first minimal screen: camera ID, RECORDING/ERROR state, recent segment, USB presence/space, RTC/time, temperature, Internet/Bluetooth.
@@ -85,7 +100,7 @@ Status: initial product assumptions; hardware validation required. Aligned with 
 
 ## Hardware and operating system notes
 - OS (D13): Raspberry Pi OS Lite 32-bit; Bookworm vs Trixie A/B test on a real Zero 2 W with OV5647, then freeze OS/kernel/camera dependency versions after field validation. 64-bit may be benchmarked later.
-- Test initially with mains supply and USB; batteries later. Technician phone platform: Android.
+- Test initially with mains supply and USB; batteries later. Technician phones: Android and iPhone (D5).
 - Current fleet sensor: OV5647 (approximately 400 modules owned). Detect sensor model and advertised video modes dynamically through libcamera/rpicam.
 - Use capability-driven camera settings. Hide autofocus, manual motor focus, optical zoom, etc unless the sensor/actuator and its driver expose real compatible controls.
 - Future replacement camera modules must not require rewriting the recorder/UI.
@@ -101,4 +116,4 @@ Status: initial product assumptions; hardware validation required. Aligned with 
 - Verify actual FOV/crop for OV5647 at every proposed mode; high resolution must not sacrifice junction coverage.
 - Test whether the encoder/overlaid timestamp can hold 1080p30 for 24–48h while USB is being browsed and low-fps preview is active.
 - Define a stable unit identifier distinct from current friendly box label; ensure configuration is backed up for reflashing.
-- For BT PAN on Android, test the concrete phone and OS version before treating the connection method as universal.
+- For BT PAN on Android and iPhone, test the concrete phone and OS version before treating the connection method as universal.

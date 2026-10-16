@@ -4,6 +4,28 @@
 
 When the owner changes a decision, the previous wording is moved here, newest first.
 
+## 2026-10-16 — Bluetooth recovery and technician phones
+
+The owner decided how the camera behaves when Bluetooth cannot be recovered and that iPhones must be supported (see D2, D5, D15 in [DECISIONS.md](DECISIONS.md)). Previous wording:
+
+### D2 before 2026-10-16 amendment
+
+> Recording never depends on or waits for Bluetooth, Wi-Fi, Internet, the web panel, GitHub or TSP OS. A failure in any of them must not interrupt recording.
+
+Now has one exception: a single automatic reboot per power-on period when Bluetooth cannot be recovered.
+
+### D5 before 2026-10-16 amendment
+
+> Technicians use Android phones.
+
+Now: Android and iPhone must both work. This also reverses the removal recorded in H6 below.
+
+### Proposals not adopted for Bluetooth failure (Q8)
+
+- Wi-Fi AP for 15 minutes as an automatic fallback when Bluetooth fails (Claude). Rejected by the owner: periodic Wi-Fi drains the battery while nobody is at the camera.
+- No automatic reboot at all (ChatGPT). The owner chose one reboot, then emergency mode.
+- A full reboot after 3 failed attempts, with no limit stated (owner's first idea, 2026-10-16). Replaced by the one-reboot limit and emergency mode.
+
 ## 2026-10-16 — Documentation consolidation
 
 On 2026-10-16 the owner confirmed five decisions as settled (stamp, clock-hour MP4, no overwrite/deletion on USB, autostart, Power Down) and agreed a PR-based workflow for Claude, ChatGPT and the owner. The wording below was removed from specification documents because it contradicted a current decision, duplicated a decision with a "superseded" note, or had already been corrected by [TECHNICAL_RISK_AUDIT.md](TECHNICAL_RISK_AUDIT.md). Full previous text of every file is in git history at commit `7f6015f`.

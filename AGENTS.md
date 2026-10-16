@@ -71,7 +71,7 @@ Full wording in [docs/DECISIONS.md](docs/DECISIONS.md). In short:
 - **USB:** never overwrite, never delete recordings automatically; full USB → stop and alarm.
 - **Autostart:** recording starts by itself when a working USB drive is detected.
 - **Power Down:** closes the recording safely and shuts down the whole Raspberry Pi.
-- **Recording is independent** of Bluetooth, Wi-Fi, Internet, the panel and TSP OS.
+- **Recording is independent** of Bluetooth, Wi-Fi, Internet, the panel and TSP OS. Single exception: one automatic reboot per power-on period when the camera's own Bluetooth cannot be recovered — a missing phone never counts (D2, D15).
 - **Bluetooth is primary.** The emergency Wi-Fi AP switches on automatically at **every boot**, whatever the Bluetooth or phone state, and switches off by itself after 15 minutes. Extending it or re-enabling it later is an open question (STATUS Q4), neither allowed nor ruled out.
 
 ## 7. Agent signature
