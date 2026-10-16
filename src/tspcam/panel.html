@@ -124,7 +124,13 @@ button,a{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;o
           </article>
           <article class="card"><div class="card-title"><span class="ci">▣</span> Storage</div>
             <span class="value" id="storageState">Checking…</span>
-            <div class="meter"><b id="storageBar"></b></div><span class="muted" id="storageFree">Checking USB mount</span><div class="storage-detail" id="storagePath">Detecting physical USB…</div>
+            <div class="meter"><b id="storageBar"></b></div><span class="muted" id="storageFree">Checking USB mount</span><div class="storage-detail" id="storagePath">Detecting physical USB…</div><div class="storage-detail" style="border-top:1px solid var(--border);padding-top:10px;margin-top:10px">
+ <label for="storageSelector" style="font-weight:700;display:block;margin-bottom:6px">USB recording destination</label>
+ <select id="storageSelector" aria-label="Choose USB recording storage" style="width:100%;min-width:0;padding:10px 7px;border:1px solid #cbd5e1;background:white;border-radius:8px;color:var(--ink)"><option value="">Scanning drives…</option></select>
+ <button id="saveStorage" class="action" style="width:100%;margin-top:7px" disabled>Select this USB drive</button>
+ <div id="storageNotice" class="muted" style="font-size:12px;margin-top:7px">Connect USB to choose recording destination</div>
+ <div id="usbVolumeList" class="muted" style="font-size:11px;margin-top:8px;white-space:pre-line"></div>
+ </div>
           </article>
           <article class="card"><div class="card-title"><span class="ci">ϟ</span> Power</div>
             <span class="value gray">No battery telemetry</span>
@@ -155,6 +161,7 @@ button,a{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;o
 <script>
 "use strict";
 var tab="live",latest=null,previewBusy=false,previewStarted=0,settingsLoaded=false;
+var selectedStorageDraft=null;
 function element(id){return document.getElementById(id)}
 function set(id,val){var e=element(id);if(e)e.textContent=val===null||val===undefined?"—":String(val)}
 function bytes(v){if(v===undefined||v===null)return "—";var u=["B","KB","GB","GB","TB"],n=Number(v),i=0;
@@ -169,6 +176,21 @@ function activate(next){tab=next;document.querySelectorAll(".content").forEach(f
 document.querySelectorAll("[data-tab]").forEach(function(b){b.addEventListener("click",function(){activate(b.dataset.tab)})});
 element("snapshot").addEventListener("click",function(){window.location.href="/api/snapshot.jpg"});
 element("fullscreen").addEventListener("click",function(){var e=element("cameraImage");if(e.requestFullscreen)e.requestFullscreen()});
+element("storageSelector").addEventListener("change",function(){
+ selectedStorageDraft=this.value;element("saveStorage").disabled=!this.value;
+});
+element("saveStorage").addEventListener("click",async function(){
+ var btn=element("saveStorage"),value=element("storageSelector").value;
+ if(!value)return;
+ btn.disabled=true;set("storageNotice","Saving selection…");
+ try{
+  var r=await fetch("/api/storage/select",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({volume_id:value})});
+  var response=await r.json();if(!r.ok)throw Error(response.error||"Selection rejected");
+  set("storageNotice","Saved. Mount service will check within about 30 seconds.");
+  selectedStorageDraft=null;await poll();
+ }catch(err){set("storageNotice","Selection failed: "+err.message);}
+ finally{btn.disabled=false}
+});
 element("saveCamera").addEventListener("click",async function(){
  var btn=element("saveCamera");btn.disabled=true;set("saveNotice","Saving...");
  try{var changes={preview_resolution:element("previewResolution").value,
@@ -180,12 +202,42 @@ element("saveCamera").addEventListener("click",async function(){
  settingsLoaded=false;poll();
  }catch(err){set("saveNotice","Error: "+err.message)}finally{btn.disabled=false}
 });
+function renderUsbVolumes(usb){
+ var volumes=Array.isArray(usb.volumes)?usb.volumes:[];
+ var select=element("storageSelector"), current=selectedStorageDraft||usb.selected_id||"";
+ select.replaceChildren();
+ var baseOption=new Option(volumes.length?"Choose a USB drive…":"No USB volumes detected","");
+ select.add(baseOption);
+ for(var i=0;i<volumes.length;i++){
+  var v=volumes[i];var display=v.display_name||v.label||v.source;
+  var title=display+" · "+(v.filesystem||"unknown format")+" · "+bytes(v.size_bytes)+" ("+v.source+")";
+  if(!v.selectable)title+=" — "+(v.read_only?"read-only":v.supported?"missing UUID":"unsupported format");
+  var option=new Option(title,v.id||"");option.disabled=!v.selectable;
+  select.add(option);
+ }
+ select.value=volumes.some(function(v){return v.id===current&&v.selectable})?current:"";
+ element("saveStorage").disabled=!select.value;
+ var summary=[];
+ for(var j=0;j<volumes.length;j++){
+  var disk=volumes[j],flag=disk.id===usb.selected_id?" [SELECTED]":"";
+  summary.push((disk.display_name||disk.source)+" · "+(disk.filesystem||"unformatted")+" · "+bytes(disk.size_bytes)+flag);
+ }
+ set("usbVolumeList",summary.join("\n")||"No USB volumes found");
+ if(usb.reason==="choose_volume")set("storageNotice","Multiple volumes found. Choose which one will be used for recordings.");
+ else if(usb.selection_mode==="selected_missing_or_duplicate")set("storageNotice","Previously selected USB missing or ambiguous. No automatic replacement.");
+ else if(usb.reason==="selected_not_mounted")set("storageNotice","Selected USB is waiting to be mounted.");
+ else if(usb.reason==="selected_not_writable")set("storageNotice","Selected USB is mounted but not writable by camera.");
+ else if(usb.recording_root)set("storageNotice","Chosen destination is ready for future recordings.");
+ else if(!volumes.length)set("storageNotice","No eligible USB filesystem. Check disk connection.");
+}
+
 function render(d){
  latest=d;set("boxName",d.box_id==="UNASSIGNED"?"TSPCAM · Unassigned":d.box_id);set("hostLabel",d.hostname);
  set("version",d.version);set("networkIp",window.location.hostname);set("uptime",uptime(d.uptime_seconds));
  set("rtc",(d.rtc_devices||[]).length+" detected");set("temperature",d.cpu_temperature_c===null?"—":d.cpu_temperature_c+" °C");
  set("throttle",d.throttled||"Unknown");var u=d.usb||{};
- set("storageState",u.mounted?(u.writable?"USB ready":"USB not writable"):(u.reason==="discovery_error"?"USB scan error":u.detected?"USB detected · not ready":"USB not detected"));
+ renderUsbVolumes(u);
+ set("storageState",u.mounted?(u.writable?"USB ready":"USB not writable"):(u.reason==="discovery_error"?"USB scan error":u.detected?"USB detected · select destination":"USB not detected"));
  set("storageFree",u.mounted?bytes(u.free_bytes)+" free of "+bytes(u.total_bytes):
   u.reason==="discovery_error"?"USB scan failed: "+(u.detail||"unknown error"):
   u.reason==="usb_without_supported_filesystem"?"USB connected, unsupported or missing filesystem":
