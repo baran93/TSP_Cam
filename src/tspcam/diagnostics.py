@@ -41,7 +41,12 @@ def mounted_volume(mount: Path, mountinfo: str | None = None) -> dict:
                 free = size.f_bavail * size.f_frsize
             except OSError:
                 return {"mounted": False, "reason": "statvfs_failed", "source": source}
-            return {"mounted": True, "source": source, "filesystem": filesystem, "free_bytes": free}
+            total = size.f_blocks * size.f_frsize
+            used = max(0, total - size.f_bfree * size.f_frsize)
+            return {"mounted": True, "source": source, "filesystem": filesystem,
+                    "free_bytes": free, "total_bytes": total,
+                    "used_bytes": used,
+                    "used_percent": round(100 * used / total, 1) if total else None}
         except (ValueError, IndexError):
             continue
     return {"mounted": False, "reason": "not_mounted"}

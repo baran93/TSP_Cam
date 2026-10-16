@@ -9,6 +9,14 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 command -v systemctl >/dev/null || { echo "systemd is required" >&2; exit 1; }
 command -v python3 >/dev/null || { echo "python3 is required" >&2; exit 1; }
 python3 -c 'import sys, tomllib; assert sys.version_info >= (3, 11)' || { echo "Python 3.11+ is required" >&2; exit 1; }
+# The preview is imported lazily. Install from Raspberry Pi OS apt, not PyPI
+# (libcamera bindings must match the installed Raspberry Pi OS).
+if ! python3 -c 'from picamera2 import Picamera2' >/dev/null 2>&1; then
+  echo "Installing Raspberry Pi OS Picamera2 dependencies for live preview..."
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update
+  apt-get install -y --no-install-recommends python3-picamera2 python3-pil
+fi
 # Phase-0 installer must never interrupt an already running production recorder.
 if systemctl is-active --quiet tspcam-capture.service; then
   echo "Recording is active: use the future safe release updater, not this installer." >&2
@@ -19,6 +27,12 @@ install -d -m 0755 "$INSTALL_ROOT" "$INSTALL_ROOT/releases"
 if ! id -u tspcam >/dev/null 2>&1; then
   useradd --system --home-dir /var/lib/tspcam --shell /usr/sbin/nologin tspcam
 fi
+# The unprivileged web service needs camera media devices when a preview is open.
+for group in video render; do
+  if getent group "$group" >/dev/null; then
+    usermod -a -G "$group" tspcam
+  fi
+done
 install -d -o tspcam -g tspcam -m 0750 /var/lib/tspcam
 # Phase 0 pilot: config is non-secret and CLI runs as pi without sudo.
 # Future versions must separate credentials into a private file/service.
@@ -73,4 +87,4 @@ systemctl enable --now tspcam-agent.service tspcam-web.service
 echo "TSP_Cam Phase 0 installed: $RELEASE"
 echo "Run: tspcam status"
 echo "Web: http://<PI_LAN_IP>:8765 (PILOT ONLY: no login; no WAN port forwarding)"
-echo "No recording has been installed or started."
+echo "On-demand JPEG preview enabled (Picamera2); MP4 recording NOT yet implemented."

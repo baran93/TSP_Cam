@@ -1,5 +1,5 @@
 [Unit]
-Description=TSP_Cam LAN pilot read-only web status (Phase 0)
+Description=TSP_Cam LAN pilot dashboard and on-demand camera preview
 After=local-fs.target
 ConditionPathExists=/opt/tspcam/current/tspcam
 

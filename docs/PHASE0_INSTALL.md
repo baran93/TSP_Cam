@@ -1,6 +1,6 @@
 # Phase 0 pilot: one-command installation and read-only LAN panel
 
-**Status:** PR #3 on actual pilot Raspberry Pi, **not** a field recorder and not signed OTA.
+**Status:** PR #3 on actual pilot Raspberry Pi. Responsive read-only LAN dashboard and prototype on-demand camera preview, **not** a field recorder or signed OTA.
 
 ## One command with temporarily public repository
 
@@ -12,13 +12,19 @@ d=$(mktemp -d) && curl -fsSL https://api.github.com/repos/baran93/TSP_Cam/tarbal
 
 Does not require Git or a GitHub SSH key. If the repository is private again, unauthenticated downloads fail. Code/history may be copied while public. This shortcut is **only for trusted pilots**; production plans need signed release artifacts.
 
-Requires Raspberry Pi OS Lite, Python 3.11+, systemd, curl and tar. From an already downloaded, trusted checkout, run `sudo bash scripts/install-local.sh`.
+Requires Raspberry Pi OS Lite, Python 3.11+, systemd, curl and tar. The installer also installs Raspberry Pi OS apt packages `python3-picamera2` and `python3-pil` if Picamera2 is not already importable; camera support depends on installed OS/libcamera drivers. From an already downloaded, trusted checkout, run `sudo bash scripts/install-local.sh`.
 
 ## Access from a PC or phone on the same LAN
 
 The pilot read-only dashboard listens on all Pi interfaces (`0.0.0.0:8765`); open `http://<PI_IP>:8765/` from a PC or phone on the same reachable network. Discover IP via `hostname -I` or `ip -4 addr`. Ensure the access point does not enable client isolation.
 
 **Pilot risk:** no authentication or TLS. Anyone with network access can read device status (hostname, USB state, etc.). Do not enable router port forwarding or publicly expose port 8765; this is not production behaviour.
+
+## Camera preview prototype
+
+Open dashboard on `http://<PI_IP>:8765/` and the Live View page requests `/api/preview.jpg` at 1 fps. First frames may show a placeholder while Picamera2 starts; the status panel shows the real camera error if it fails. When the page is no longer requesting frames, the camera is stopped/released after about 15 seconds. No JPEGs are written to the SD or USB. Snapshot downloads the latest fresh JPEG only. The preview is currently the only process owning the camera; once the H264 recorder exists, preview must be integrated with the recorder capture pipeline.
+
+It is a PIL/Picamera2 proof-of-concept on OV5647. Real hardware testing and FPS/power validation remain outstanding.
 
 ## Verify
 
@@ -41,4 +47,4 @@ On disk:
 
 The initial script created staging with `mktemp -d` (mode 0700) and moved that directory unchanged into releases; ordinary `pi` user and `tspcam` service therefore could not traverse `/opt/tspcam/current`. Corrected to set release directory mode 0755; also fixed a malformed temporary symlink path in an intervening commit.
 
-This installer does **not** implement capture, recording, MP4, preview, Bluetooth PAN, Wi-Fi AP, real camera settings, RTC updates, auth or fleet OTA. Recorder testing is next.
+This installer does **not** implement recording, MP4, Bluetooth PAN, Wi-Fi AP, real camera settings, RTC updates, authentication or fleet OTA. It does implement an experimental on-demand live preview. Recorder testing is next.

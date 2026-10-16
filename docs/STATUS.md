@@ -105,3 +105,10 @@ Proposed order; the owner assigns implementer and reviewer for each task.
 - Owner explicitly requested **read-only LAN-accessible status dashboard without login for early testing**. The pilot web server now binds to `0.0.0.0:8765`, reachable via Pi LAN IP, not intended to be exposed to WAN. Production authentication remains planned. No recorder implemented.
 
 - Second real-pilot failure (2026-10-16): `tspcam status` returned permission denied for `/etc/tspcam/config.toml` when invoked as unprivileged `pi`. For owner-approved temporary **non-secret pilot config only**, installer now grants directory 0755 and config 0644, including repairing existing pilot installations. Corrected accidental JS-generated `.current.$` to `.current.$$` in the installer, with regression CI assertion.
+
+### Owner-requested UI pilot — 2026-10-16 (PR #3)
+
+- Added responsive technician dashboard based on the owner-provided mockup: navigation, real system/USB/RTC status, network address, snapshot button, visible nonfunctional/placeholder sections for unfinished features (no fake recording or fake battery %).
+- Real OV5647 preview prototype: Picamera2 imported on demand by `tspcam-web`; one camera instance per web process, 640x480 RGB888, JPEG approx 1 fps in RAM. Idle after 15 seconds without requests, then release camera hardware. Camera errors exposed in dashboard status and retried with backoff; preview is independent of (currently unimplemented) MP4 recorder. When a recorder is implemented, preview must consume shared recorder output rather than compete for the sensor.
+- Install pilot now attempts to install `python3-picamera2` and `python3-pil` via Raspberry Pi OS apt if missing. Add camera access groups to `tspcam`. Hardware run of live preview and power measurements pending. Installation can fail on OS images without compatible Raspberry Pi apt repositories.
+- LAN dashboard remains intentionally unauthenticated for this pilot by explicit owner request. No network port forwarding; signed releases/auth/production rollback still deferred.
