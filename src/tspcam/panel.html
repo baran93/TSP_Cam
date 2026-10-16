@@ -45,12 +45,22 @@ button,a{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;o
 @media(max-width:1100px){.layout{grid-template-columns:178px minmax(0,1fr)}.brand-logo b{height:38px;width:38px;font-size:28px}.brand-sub{font-size:10px}.dashboard{grid-template-columns:minmax(0,1fr)}.stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.stack .card:first-child{grid-column:1/-1}.grid-three{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:740px){.layout{display:block}.sidebar{display:none}.main{padding:9px 9px 92px;gap:10px}.top{padding:15px;min-height:76px}.device-name{font-size:19px}.device-head{gap:14px}.device-led{width:15px;height:15px;box-shadow:0 0 0 6px #d7f5e8}.version{font-size:11px}.card{padding:11px}.dashboard{gap:10px}.video-stage{aspect-ratio:4/3}.stack{gap:9px}.grid-three{gap:9px}.mini{min-height:98px}.mini strong{font-size:15px}.mobile-tabs{position:fixed;z-index:8;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid var(--border);box-shadow:0 -5px 20px #22334418;padding:9px 4px max(10px,env(safe-area-inset-bottom));justify-content:space-around}.mobile-tabs button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:5px;color:#68788c;min-width:55px;font-weight:600;font-size:11px}.mobile-tabs button.active{color:var(--blue)}.mobile-tabs button span{font-size:21px}}
 @media(max-width:440px){.actions{grid-template-columns:1fr 1fr}.actions button:last-child{display:none}.stack{grid-template-columns:1fr 1fr}.stack .details{font-size:12px}.grid-three{grid-template-columns:1fr 1fr}.grid-three>.card:last-child{grid-column:1/-1}}
+.brand-png{width:155px;max-width:100%;height:auto;display:block;object-fit:contain;border-radius:8px}
+.pilot-controls{margin-top:14px;border-top:1px solid var(--border);padding-top:12px}
+.pilot-controls h3{font-size:14px;margin:0 0 6px}.pilot-controls p{font-size:12px;color:#7b8998;margin:0 0 12px}
+.settings-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.settings-fields label{font-size:11px;color:#5c6f80;display:flex;flex-direction:column;gap:5px}
+.settings-fields select{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:9px 6px;background:white;color:#1c2b3c;font-size:13px}
+.settings-foot{display:flex;align-items:center;gap:12px;margin-top:11px;flex-wrap:wrap}
+.settings-foot #saveNotice{font-size:12px;color:#53647a}
+.storage-detail{font-size:12px;color:#5e7187;margin-top:8px;overflow-wrap:anywhere}
+@media(max-width:460px){.settings-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.settings-fields label:last-child{grid-column:1/-1}.brand-png{width:130px}}
 </style>
 </head>
 <body>
 <div class="layout">
   <aside class="sidebar">
-    <div class="brand"><div class="brand-logo"><b>t</b><b>s</b><b>p</b></div><div class="brand-sub">Traffic Survey Partners</div></div>
+    <div class="brand"><img src="/assets/tsp-logo.png" alt="Traffic Survey Partners" class="brand-png"></div>
     <nav class="nav">
       <button class="navbtn active" data-tab="live"><span class="ico">▣</span> Live View</button>
       <button class="navbtn" data-tab="status"><span class="ico">◉</span> Status</button>
@@ -83,19 +93,38 @@ button,a{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;o
             <button class="action record" disabled><i class="red-dot"></i>Recording unavailable</button>
             <button class="action" id="fullscreen">⛶ Fullscreen</button>
           </div>
+          <div class="pilot-controls"><h3>Camera settings</h3>
+            <p>Preview applies immediately; recording resolution is saved for the future MP4 recorder.</p>
+            <div class="settings-fields">
+              <label>Preview resolution<select id="previewResolution">
+                <option value="640x480">640 × 480</option><option value="800x600">800 × 600</option>
+                <option value="1280x720">1280 × 720</option></select></label>
+              <label>Preview FPS<select id="previewFPS">
+                <option value="1">1 FPS</option><option value="3">3 FPS</option><option value="5">5 FPS</option>
+              </select></label>
+              <label>Future recording resolution<select id="recordingResolution">
+                <option value="800x600">800 × 600</option>
+                <option value="1280x720">1280 × 720</option>
+                <option value="1280x960">1280 × 960</option>
+                <option value="1920x1080">1920 × 1080</option>
+              </select></label>
+            </div><div class="settings-foot">
+              <button id="saveCamera" class="action">Save settings</button><span id="saveNotice"></span>
+            </div>
+          </div>
         </div>
         <div class="stack">
           <article class="card"><div class="card-title"><span class="ci">◉</span> Camera <span class="card-link">›</span></div>
             <span class="value" id="cameraState">Awaiting preview</span>
             <div class="details">
-              <span class="key">Preview</span><span class="val">640 × 480 · ~1 FPS</span>
+              <span class="key">Preview</span><span class="val" id="previewMode">640 × 480 · 5 FPS</span>
               <span class="key">Recording</span><span class="val">Not implemented</span>
               <span class="key">Preview mode</span><span class="val">On demand</span>
             </div>
           </article>
           <article class="card"><div class="card-title"><span class="ci">▣</span> Storage</div>
             <span class="value" id="storageState">Checking…</span>
-            <div class="meter"><b id="storageBar"></b></div><span class="muted" id="storageFree">Checking USB mount</span>
+            <div class="meter"><b id="storageBar"></b></div><span class="muted" id="storageFree">Checking USB mount</span><div class="storage-detail" id="storagePath">Detecting physical USB…</div>
           </article>
           <article class="card"><div class="card-title"><span class="ci">ϟ</span> Power</div>
             <span class="value gray">No battery telemetry</span>
@@ -125,7 +154,7 @@ button,a{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;o
 </nav>
 <script>
 "use strict";
-var tab="live",latest=null,previewBusy=false,previewStarted=0;
+var tab="live",latest=null,previewBusy=false,previewStarted=0,settingsLoaded=false;
 function element(id){return document.getElementById(id)}
 function set(id,val){var e=element(id);if(e)e.textContent=val===null||val===undefined?"—":String(val)}
 function bytes(v){if(v===undefined||v===null)return "—";var u=["B","KB","GB","GB","TB"],n=Number(v),i=0;
@@ -140,23 +169,45 @@ function activate(next){tab=next;document.querySelectorAll(".content").forEach(f
 document.querySelectorAll("[data-tab]").forEach(function(b){b.addEventListener("click",function(){activate(b.dataset.tab)})});
 element("snapshot").addEventListener("click",function(){window.location.href="/api/snapshot.jpg"});
 element("fullscreen").addEventListener("click",function(){var e=element("cameraImage");if(e.requestFullscreen)e.requestFullscreen()});
+element("saveCamera").addEventListener("click",async function(){
+ var btn=element("saveCamera");btn.disabled=true;set("saveNotice","Saving...");
+ try{var changes={preview_resolution:element("previewResolution").value,
+ preview_fps:Number(element("previewFPS").value),
+ recording_resolution:element("recordingResolution").value};
+ var r=await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(changes)});
+ var data=await r.json();if(!r.ok)throw Error(data.error||"Request failed");
+ set("saveNotice","Saved. Preview will reconnect; MP4 recorder is not installed.");
+ settingsLoaded=false;poll();
+ }catch(err){set("saveNotice","Error: "+err.message)}finally{btn.disabled=false}
+});
 function render(d){
  latest=d;set("boxName",d.box_id==="UNASSIGNED"?"TSPCAM · Unassigned":d.box_id);set("hostLabel",d.hostname);
  set("version",d.version);set("networkIp",window.location.hostname);set("uptime",uptime(d.uptime_seconds));
  set("rtc",(d.rtc_devices||[]).length+" detected");set("temperature",d.cpu_temperature_c===null?"—":d.cpu_temperature_c+" °C");
  set("throttle",d.throttled||"Unknown");var u=d.usb||{};
- set("storageState",u.mounted?"USB mounted":"No valid USB mount");
- set("storageFree",u.mounted?bytes(u.free_bytes)+" free of "+bytes(u.total_bytes):"Recording drive unavailable");
+ set("storageState",u.mounted?(u.writable?"USB ready":"USB mounted, not writable"):(u.detected?"USB detected, mounting…":"USB not detected"));
+ set("storageFree",u.mounted?bytes(u.free_bytes)+" free of "+bytes(u.total_bytes):(u.detected?"Found USB; waiting for filesystem mount":"Connect a USB drive"));
+ set("storagePath",u.recording_root?"Future recording target: "+u.recording_root:(u.mounted?
+ "Mounted: "+u.mount_path+" · check write permissions":u.detected?"Detected: "+(u.devices||[]).map(x=>x.source).join(", "):"Never fallback to SD"));
+ var cs=d.camera_settings||{};
+ if(!settingsLoaded&&cs.preview_resolution){
+ element("previewResolution").value=cs.preview_resolution;
+ element("previewFPS").value=String(cs.preview_fps);
+ element("recordingResolution").value=cs.recording_resolution;
+ settingsLoaded=true;}
+ set("previewMode",cs.preview_resolution?cs.preview_resolution.replace("x"," × ")+" · "+cs.preview_fps+" FPS":"—");
  element("storageBar").style.width=u.mounted&&Number.isFinite(u.used_percent)?u.used_percent+"%":"0";
  var p=d.preview||{};set("cameraState",p.live?"Preview available":(p.state==="error"?"Camera unavailable":p.state==="idle"?"Standby":"Starting preview"));
  set("previewBadge",p.live?"LIVE":p.state==="error"?"ERROR":p.state==="idle"?"STANDBY":"WAIT");
  element("previewBadge").classList.toggle("live",!!p.live);
- set("previewInfo",p.live?"Live JPEG preview · about 1 frame per second":p.error?"Camera error: "+p.error:
+ set("previewInfo",p.live?"Live JPEG preview · up to "+(cs.preview_fps||5)+" FPS":p.error?"Camera error: "+p.error:
   p.state==="idle"?"Preview sleeps after 15 seconds without viewers":"Starting camera; first frame may take several seconds");
  element("snapshot").disabled=!p.live;
  lines("statusLines",[["Unit",d.box_id],["Hostname",d.hostname],["Model/architecture",d.machine],["Uptime",uptime(d.uptime_seconds)],
  ["CPU temperature",d.cpu_temperature_c===null?"Unknown":d.cpu_temperature_c+" °C"],["Throttling",d.throttled||"Unknown"],
  ["Camera",p.state+" · "+(p.error||"no error")],["USB",u.mounted?u.source:(u.reason||"not mounted")],
+ ["USB devices",(u.devices||[]).map(x=>x.source+" "+(x.label||"")+(x.mountpoints||[]).join(",")).join("; ")||"None"],
+ ["Default recording target",u.recording_root||"Unavailable until writable USB is mounted"],
  ["Recorder","Not implemented"]]);
  lines("networkLines",[["Address used for panel",window.location.host],["Browser protocol",window.location.protocol],
  ["Bluetooth PAN","Not implemented"],["Wi-Fi AP","Not implemented"],["Configured timezone",d.timezone_configured]]);
@@ -176,7 +227,7 @@ function refreshPreview(){if(tab!=="live"||document.hidden||previewBusy)return;
  previewBusy=true;previewStarted=Date.now();var img=element("cameraImage");img.src="/api/preview.jpg?t="+Date.now()}
 element("cameraImage").addEventListener("load",function(){previewBusy=false});
 element("cameraImage").addEventListener("error",function(){previewBusy=false;set("previewInfo","Preview request failed")});
-setInterval(function(){if(previewBusy&&Date.now()-previewStarted>8000)previewBusy=false;refreshPreview()},1600);
+setInterval(function(){if(previewBusy&&Date.now()-previewStarted>8000)previewBusy=false;refreshPreview()},220);
 setInterval(poll,5000);poll();refreshPreview();
 </script>
 </body>
