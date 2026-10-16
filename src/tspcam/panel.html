@@ -185,10 +185,15 @@ function render(d){
  set("version",d.version);set("networkIp",window.location.hostname);set("uptime",uptime(d.uptime_seconds));
  set("rtc",(d.rtc_devices||[]).length+" detected");set("temperature",d.cpu_temperature_c===null?"—":d.cpu_temperature_c+" °C");
  set("throttle",d.throttled||"Unknown");var u=d.usb||{};
- set("storageState",u.mounted?(u.writable?"USB ready":"USB mounted, not writable"):(u.detected?"USB detected, mounting…":"USB not detected"));
- set("storageFree",u.mounted?bytes(u.free_bytes)+" free of "+bytes(u.total_bytes):(u.detected?"Found USB; waiting for filesystem mount":"Connect a USB drive"));
- set("storagePath",u.recording_root?"Future recording target: "+u.recording_root:(u.mounted?
- "Mounted: "+u.mount_path+" · check write permissions":u.detected?"Detected: "+(u.devices||[]).map(x=>x.source).join(", "):"Never fallback to SD"));
+ set("storageState",u.mounted?(u.writable?"USB ready":"USB not writable"):(u.reason==="discovery_error"?"USB scan error":u.detected?"USB detected · not ready":"USB not detected"));
+ set("storageFree",u.mounted?bytes(u.free_bytes)+" free of "+bytes(u.total_bytes):
+  u.reason==="discovery_error"?"USB scan failed: "+(u.detail||"unknown error"):
+  u.reason==="usb_without_supported_filesystem"?"USB connected, unsupported or missing filesystem":
+  u.detected?"USB available but not mounted; check mount service":"No USB storage detected");
+ set("storagePath",u.recording_root?"Recording destination once recorder exists: "+u.recording_root:(u.mounted?
+ "Mounted: "+u.mount_path+" · not writable by TSP_Cam":u.detected?
+ "Detected: "+(u.devices||[]).map(x=>x.source).concat((u.hardware||[]).map(x=>x.source)).join(", ")+" · "+(u.reason||"unmounted"):
+ "Never fallback to SD"));
  var cs=d.camera_settings||{};
  if(!settingsLoaded&&cs.preview_resolution){
  element("previewResolution").value=cs.preview_resolution;
@@ -207,6 +212,8 @@ function render(d){
  ["CPU temperature",d.cpu_temperature_c===null?"Unknown":d.cpu_temperature_c+" °C"],["Throttling",d.throttled||"Unknown"],
  ["Camera",p.state+" · "+(p.error||"no error")],["USB",u.mounted?u.source:(u.reason||"not mounted")],
  ["USB devices",(u.devices||[]).map(x=>x.source+" "+(x.label||"")+(x.mountpoints||[]).join(",")).join("; ")||"None"],
+ ["USB hardware",(u.hardware||[]).map(x=>x.source).join("; ")||"None"],
+ ["USB diagnostic",u.reason||u.detail||"ok"],
  ["Default recording target",u.recording_root||"Unavailable until writable USB is mounted"],
  ["Recorder","Not implemented"]]);
  lines("networkLines",[["Address used for panel",window.location.host],["Browser protocol",window.location.protocol],

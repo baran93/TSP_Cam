@@ -45,6 +45,23 @@ class USBStorageTests(unittest.TestCase):
         self.assertFalse(state["mounted"])
         self.assertEqual(state["reason"], "multiple_usb_volumes")
 
+    def test_usb_detected_without_formatted_partition(self):
+        device = {"blockdevices": [{"path": "/dev/sda", "type": "disk",
+            "tran": "usb", "children": [{"path": "/dev/sda1", "type": "part",
+              "fstype": None, "mountpoints": [None]}]}]}
+        state = inspect_usb(Path("/media/tspcam"), lsblk_data=device)
+        self.assertTrue(state["detected"])
+        self.assertEqual(state["reason"], "usb_without_supported_filesystem")
+        self.assertIsNone(state["recording_root"])
+
+    def test_usb_detected_from_hotplug_when_tran_missing(self):
+        device = volume()
+        device["blockdevices"][0]["tran"] = None
+        device["blockdevices"][0]["hotplug"] = 1
+        state = inspect_usb(Path("/media/tspcam"), lsblk_data=device)
+        self.assertTrue(state["detected"])
+        self.assertEqual(state["reason"], "not_mounted")
+
     @patch("tspcam.usb_storage.os.geteuid", return_value=1000)
     def test_mount_requires_root(self, uid):
         self.assertEqual(ensure_mount(), "Mount agent requires root")

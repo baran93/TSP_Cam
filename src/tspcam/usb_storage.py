@@ -12,7 +12,7 @@ from pathlib import Path
 import re
 import subprocess
 
-FILESYSTEMS = {"vfat", "exfat", "ext4", "ntfs", "ntfs3"}
+FILESYSTEMS = {"vfat", "exfat", "ext4", "ntfs", "ntfs3", "fuseblk"}
 SYSTEM_MOUNTS = {"/", "/boot", "/boot/firmware", "/home", "/var", "/usr", "/tmp"}
 DEFAULT_MOUNT = Path("/media/tspcam")
 
@@ -29,9 +29,14 @@ def enumerate_usb(lsblk_output: dict) -> list[dict]:
     """Select only filesystem partitions or whole disks underneath TRAN=usb."""
     devices = []
     def scan(node, is_usb=False):
-        usb = is_usb or node.get("tran") == "usb"
+        # OTG flash drives do not always report TRAN=usb on every Pi image.
+        # HOTPLUG on an sdX device is a second, conservative indicator.
+        name = node.get("path") or ""
+        usb = is_usb or node.get("tran") == "usb" or (
+            isinstance(name, str) and re.fullmatch(r"/dev/sd[a-z]+", name)
+            and node.get("hotplug") in (1, "1", True)
+        )
         kind = node.get("type")
-        name = node.get("path")
         fs = node.get("fstype")
         if usb and kind in ("part", "disk") and isinstance(name, str) and name.startswith("/dev/") and fs in FILESYSTEMS:
             mounts = _mounts(node)
@@ -54,12 +59,36 @@ def enumerate_usb(lsblk_output: dict) -> list[dict]:
     return devices
 
 
+def detected_hardware(data: dict) -> list[dict]:
+    """Show USB devices even without a recognised filesystem; never select these blindly."""
+    found = []
+    def scan(node, is_usb=False):
+        path = node.get("path") or ""
+        usb = is_usb or node.get("tran") == "usb" or (
+            isinstance(path, str) and re.fullmatch(r"/dev/sd[a-z]+", path)
+            and node.get("hotplug") in (1, "1", True)
+        )
+        if usb and node.get("type") == "disk":
+            found.append({"source": path, "transport": node.get("tran"),
+                          "size_bytes": node.get("size"),
+                          "partitions": [{"source": p.get("path"), "filesystem": p.get("fstype"),
+                                          "mountpoints": _mounts(p)}
+                                         for p in node.get("children") or [] if isinstance(p, dict)]})
+        for child in node.get("children") or []:
+            if isinstance(child, dict):
+                scan(child, usb)
+    for item in data.get("blockdevices") or []:
+        if isinstance(item, dict):
+            scan(item)
+    return found
+
+
 def inspect_usb(config_mount: Path, *, lsblk_data: dict | None = None) -> dict:
     """Discover physical USB disks even when mounted elsewhere (or nowhere)."""
     if lsblk_data is None:
         try:
             p = subprocess.run(
-                ["lsblk", "-J", "-b", "-o", "PATH,TYPE,TRAN,FSTYPE,MOUNTPOINTS,RO,SIZE,LABEL,UUID"],
+                ["lsblk", "-J", "-b", "-o", "PATH,TYPE,TRAN,HOTPLUG,FSTYPE,MOUNTPOINTS,RO,SIZE,LABEL,UUID"],
                 capture_output=True, text=True, timeout=4, check=False,
             )
             if p.returncode:
@@ -69,6 +98,11 @@ def inspect_usb(config_mount: Path, *, lsblk_data: dict | None = None) -> dict:
             return {"detected": False, "mounted": False, "reason": "discovery_error",
                     "detail": str(exc)[:160], "devices": [], "recording_root": None}
     disks = enumerate_usb(lsblk_data)
+    hardware = detected_hardware(lsblk_data)
+    if not disks:
+        reason = "usb_without_supported_filesystem" if hardware else "no_usb_block_device"
+        return {"detected": bool(hardware), "mounted": False, "reason": reason,
+                "devices": [], "hardware": hardware, "recording_root": None}
     # A preferred mount path is trusted only when it belongs to a real USB disk.
     candidates = [d for d in disks if any(os.path.ismount(mp) and Path(mp).is_dir() for mp in d["mountpoints"])]
     preferred = [d for d in candidates if str(config_mount) in d["mountpoints"]]
@@ -78,7 +112,7 @@ def inspect_usb(config_mount: Path, *, lsblk_data: dict | None = None) -> dict:
     if len(preferred) != 1:
         reason = "multiple_usb_volumes" if len(disks) > 1 else ("not_mounted" if disks else "no_usb_storage")
         return {"detected": bool(disks), "mounted": False, "reason": reason,
-                "devices": disks, "recording_root": None}
+                "devices": disks, "hardware": hardware, "recording_root": None}
     item = preferred[0]
     mount = str(config_mount) if str(config_mount) in item["mountpoints"] else (
         str(DEFAULT_MOUNT) if str(DEFAULT_MOUNT) in item["mountpoints"] else item["mountpoints"][0]
@@ -93,12 +127,13 @@ def inspect_usb(config_mount: Path, *, lsblk_data: dict | None = None) -> dict:
                 "filesystem": item["filesystem"], "label": item["label"],
                 "uuid": item["uuid"], "mount_path": mount,
                 "recording_root": mount if writable else None,
-                "writable": writable, "free_bytes": free, "total_bytes": total,
+                "writable": writable, "reason": None if writable else "no_write_permission",
+                "free_bytes": free, "total_bytes": total,
                 "used_bytes": used, "used_percent": round(100 * used / total, 1) if total else None,
-                "devices": disks}
+                "devices": disks, "hardware": hardware}
     except OSError as exc:
         return {"detected": True, "mounted": False, "reason": "mount_stat_failed",
-                "detail": str(exc)[:160], "devices": disks, "recording_root": None}
+                "detail": str(exc)[:160], "devices": disks, "hardware": hardware, "recording_root": None}
 
 
 def ensure_mount(target: Path = DEFAULT_MOUNT) -> str:
@@ -110,7 +145,7 @@ def ensure_mount(target: Path = DEFAULT_MOUNT) -> str:
         return "USB is already mounted: " + state["mount_path"]
     disks = state["devices"]
     if len(disks) != 1:
-        return "No single eligible USB filesystem; leaving storage unchanged"
+        return "No single eligible USB filesystem; leaving storage unchanged (" + state.get("reason", "unknown") + ")"
     disk = disks[0]
     if disk["read_only"]:
         return "USB filesystem is read-only; refusing to mount for recording"
