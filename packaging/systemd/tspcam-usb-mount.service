@@ -1,0 +1,17 @@
+[Unit]
+Description=TSP_Cam pilot USB automount (real USB, single filesystem only)
+After=local-fs.target systemd-udev-settle.service
+ConditionPathExists=/opt/tspcam/current/tspcam/usb_storage.py
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/tspcam/current
+ExecStart=/usr/bin/python3 -m tspcam.usb_storage
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

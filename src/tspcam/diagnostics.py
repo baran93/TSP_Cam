@@ -9,6 +9,7 @@ import time
 
 from . import __version__
 from .config import Config
+from .usb_storage import inspect_usb
 
 
 def _read(path: str) -> str | None:
@@ -100,7 +101,7 @@ def status(config: Config) -> dict:
         "uptime_seconds": _uptime(),
         "cpu_temperature_c": cpu_temperature(),
         "throttled": throttling(),
-        "usb": mounted_volume(config.usb_mount),
+        "usb": inspect_usb(config.usb_mount),
         "rtc_devices": rtc_overview(),
         "time_unix": int(time.time()),
     }

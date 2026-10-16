@@ -1,0 +1,12 @@
+[Unit]
+Description=TSP_Cam pilot USB mount check on boot and periodic insertion
+
+[Timer]
+OnBootSec=15s
+OnUnitActiveSec=30s
+AccuracySec=5s
+Unit=tspcam-usb-mount.service
+Persistent=false
+
+[Install]
+WantedBy=timers.target
