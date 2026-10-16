@@ -76,6 +76,8 @@ if [[ ! -f "$INSTALL_ROOT/current/tspcam/__init__.py" || ! -x "$INSTALL_ROOT/cur
 fi
 install -o root -g root -m 0644 "$ROOT/packaging/systemd/tspcam-agent.service" /etc/systemd/system/tspcam-agent.service
 install -o root -g root -m 0644 "$ROOT/packaging/systemd/tspcam-web.service" /etc/systemd/system/tspcam-web.service
+install -o root -g root -m 0644 "$ROOT/packaging/systemd/tspcam-usb-mount.service" /etc/systemd/system/tspcam-usb-mount.service
+install -o root -g root -m 0644 "$ROOT/packaging/systemd/tspcam-usb-mount.timer" /etc/systemd/system/tspcam-usb-mount.timer
 cat >/usr/local/bin/tspcam <<'WRAPPER'
 #!/bin/sh
 cd /opt/tspcam/current || exit 1
@@ -84,7 +86,12 @@ WRAPPER
 chmod 0755 /usr/local/bin/tspcam
 systemctl daemon-reload
 systemctl enable --now tspcam-agent.service tspcam-web.service
+# A root-owned narrow timer only mounts a single eligible real USB volume.
+systemctl enable --now tspcam-usb-mount.timer
+systemctl start tspcam-usb-mount.service
 echo "TSP_Cam Phase 0 installed: $RELEASE"
 echo "Run: tspcam status"
 echo "Web: http://<PI_LAN_IP>:8765 (PILOT ONLY: no login; no WAN port forwarding)"
-echo "On-demand JPEG preview enabled (Picamera2); MP4 recording NOT yet implemented."
+echo "Camera preview: up to 5 FPS; profile settings are persistent."
+echo "USB auto-detection and conservative automount: enabled."
+echo "MP4 recording is NOT yet implemented."
