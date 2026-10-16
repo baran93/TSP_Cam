@@ -97,3 +97,9 @@ Proposed order; the owner assigns implementer and reviewer for each task.
 - Adds `tspcam status`, periodic read-only diagnostics, localhost-only read-only web page, two systemd services, pilot one-command **local** install, Python unit tests and GitHub Actions CI.
 - Explicitly **not implemented**: camera recorder, hourly MP4, autostart capture, RTC writes, external authenticated web panel, BT PAN/Wi-Fi AP, trusted remote GitHub release bootstrap, signed OTA/rollback.
 - Next: merge PR #1 then #2, Claude reviews PR #3, pilot check on Zero 2 W, separately implement capture pipeline and signed stable-release delivery. No deployment to live surveys until hardware acceptance tests.
+
+
+### Owner pilot update — 2026-10-16, PR #3
+
+- Owner installed Phase 0 on a real Pi and found `/opt/tspcam/releases/pilot-be66a4e36d44` mode 0700, causing `tspcam status` and both systemd services to fail. Fixed installer to set final release directory mode 0755; also corrected a temporary-link filename typo, and added regression tests. Hardware re-test pending.
+- Owner explicitly requested **read-only LAN-accessible status dashboard without login for early testing**. The pilot web server now binds to `0.0.0.0:8765`, reachable via Pi LAN IP, not intended to be exposed to WAN. Production authentication remains planned. No recorder implemented.

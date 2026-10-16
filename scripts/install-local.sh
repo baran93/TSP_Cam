@@ -36,6 +36,10 @@ find "$STAGE/tspcam" -type f -exec chmod 0644 {} +
 if [[ ! -d "$DEST" ]]; then
   mv -- "$STAGE" "$DEST"
 fi
+# mktemp makes STAGE mode 0700. After move, make this directory
+# traversable for non-root users, including pi and tspcam.
+# Also repairs permissions on a previous pilot install.
+chmod 0755 "$DEST"
 # Phase 0 services are safe to restart: neither owns a camera/recorder.
 systemctl stop tspcam-web.service tspcam-agent.service 2>/dev/null || true
 if [[ -L "$INSTALL_ROOT/current" ]]; then
@@ -46,7 +50,7 @@ fi
 ln -s -- "releases/$RELEASE" "$INSTALL_ROOT/.current.$$"
 mv -Tf -- "$INSTALL_ROOT/.current.$" "$INSTALL_ROOT/current"
 # Do not report a successful install or enable services on a dangling symlink.
-if [[ ! -f "$INSTALL_ROOT/current/tspcam/__init__.py" ]]; then
+if [[ ! -f "$INSTALL_ROOT/current/tspcam/__init__.py" || ! -x "$INSTALL_ROOT/current" ]]; then
   printf 'Install verification failed: current -> %s, expected Python package missing.\n' "$(readlink -- "$INSTALL_ROOT/current" || true)" >&2
   exit 1
 fi
@@ -62,5 +66,5 @@ systemctl daemon-reload
 systemctl enable --now tspcam-agent.service tspcam-web.service
 echo "TSP_Cam Phase 0 installed: $RELEASE"
 echo "Run: tspcam status"
-echo "Web: http://127.0.0.1:8765 (LOOPBACK ONLY; no remote authentication yet)"
+echo "Web: http://<PI_LAN_IP>:8765 (PILOT ONLY: no login; no WAN port forwarding)"
 echo "No recording has been installed or started."

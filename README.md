@@ -2,7 +2,7 @@
 
 Lightweight Raspberry Pi camera system for TSP, designed to replace MotionEye on field cameras used for traffic surveys (MCC, TMC, ANPR) and later AI analysis.
 
-**Status: Phase 0 software foundation under review.** A local diagnostics installer and read-only loopback web panel have been proposed; no recorder, camera controls or field connectivity have been implemented or tested on hardware yet. Current state and open questions: [docs/STATUS.md](docs/STATUS.md).
+**Status: Phase 0 software foundation under review.** A local diagnostics installer and read-only LAN pilot web panel have been proposed; no recorder, camera controls or field connectivity have been implemented or tested on hardware yet. Current state and open questions: [docs/STATUS.md](docs/STATUS.md).
 
 ## Goals
 
@@ -64,4 +64,4 @@ Background:
 
 ## Phase 0 pilot code
 
-The first installable, **non-recording** package is documented in [PHASE0_INSTALL](docs/PHASE0_INSTALL.md). From an authorised checkout: `sudo bash scripts/install-local.sh`. It does not touch footage and does not implement OTA. The one-command signed GitHub release installer and updater remain planned, not available yet.
+The first installable, **non-recording** package is documented in [PHASE0_INSTALL](docs/PHASE0_INSTALL.md). From an authorised checkout: `sudo bash scripts/install-local.sh`. During this temporary read-only pilot the status page is available on `http://<PI_LAN_IP>:8765/` without login; do not expose port 8765 to the Internet. It does not touch footage and does not implement OTA. The one-command signed GitHub release installer and updater remain planned, not available yet.

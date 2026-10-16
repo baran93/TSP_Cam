@@ -1,4 +1,4 @@
-"""Read-only local status panel, intentionally loopback-only until auth exists."""
+"""Read-only pilot dashboard over connected interfaces, without auth (pilot only)."""
 from __future__ import annotations
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -50,6 +50,7 @@ def make_handler(config: Config):
 
 
 def serve(config: Config) -> None:
-    # Cannot be reached via Wi-Fi/Bluetooth yet: no authentication/TLS ready.
-    with ThreadingHTTPServer(("127.0.0.1", config.web_port), make_handler(config)) as server:
+    # PILOT ONLY: all LAN interfaces, no auth or TLS.
+    # Never publish router port forwarding to this service.
+    with ThreadingHTTPServer(("0.0.0.0", config.web_port), make_handler(config)) as server:
         server.serve_forever(poll_interval=0.5)
