@@ -20,10 +20,16 @@ if ! id -u tspcam >/dev/null 2>&1; then
   useradd --system --home-dir /var/lib/tspcam --shell /usr/sbin/nologin tspcam
 fi
 install -d -o tspcam -g tspcam -m 0750 /var/lib/tspcam
-install -d -o root -g tspcam -m 0750 /etc/tspcam
+# Phase 0 pilot: config is non-secret and CLI runs as pi without sudo.
+# Future versions must separate credentials into a private file/service.
+install -d -o root -g tspcam -m 0755 /etc/tspcam
 if [[ ! -e /etc/tspcam/config.toml ]]; then
-  install -o root -g tspcam -m 0640 "$ROOT/packaging/config.example.toml" /etc/tspcam/config.toml
+  install -o root -g tspcam -m 0644 "$ROOT/packaging/config.example.toml" /etc/tspcam/config.toml
 fi
+# Repair permissions after upgrading a pilot install created with 0750/0640.
+# This applies ONLY to pilot TOML with non-secret settings.
+chmod 0755 /etc/tspcam
+chmod 0644 /etc/tspcam/config.toml
 # Immutable release directories allow retaining the previous version.
 CONTENT_HASH="$(cd "$ROOT" && find src/tspcam packaging/systemd -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -c 1-12)"
 RELEASE="pilot-$CONTENT_HASH"
@@ -48,7 +54,7 @@ if [[ -L "$INSTALL_ROOT/current" ]]; then
   mv -Tf -- "$INSTALL_ROOT/.previous.$$" "$INSTALL_ROOT/previous"
 fi
 ln -s -- "releases/$RELEASE" "$INSTALL_ROOT/.current.$$"
-mv -Tf -- "$INSTALL_ROOT/.current.$" "$INSTALL_ROOT/current"
+mv -Tf -- "$INSTALL_ROOT/.current.$$" "$INSTALL_ROOT/current"
 # Do not report a successful install or enable services on a dangling symlink.
 if [[ ! -f "$INSTALL_ROOT/current/tspcam/__init__.py" || ! -x "$INSTALL_ROOT/current" ]]; then
   printf 'Install verification failed: current -> %s, expected Python package missing.\n' "$(readlink -- "$INSTALL_ROOT/current" || true)" >&2

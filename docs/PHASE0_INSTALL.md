@@ -32,7 +32,7 @@ ss -ltn | grep ':8765'
 On disk:
 - `/opt/tspcam/releases/pilot-<hash>/` immutable-ish snapshot (release directory mode `0755` so nonroot can traverse).
 - `/opt/tspcam/current` atomic symlink to current release; `previous` to prior release.
-- `/etc/tspcam/config.toml` preserved between installs.
+- `/etc/tspcam/config.toml` preserved between installs. Pilot permissions: directory 0755, file 0644 for non-root CLI. Store **no credentials** in pilot config; move secret values to separate protected storage in future.
 - `/var/lib/tspcam` holds persistent state; no USB footage.
 - `/usr/local/bin/tspcam` is CLI entrypoint.
 - `tspcam-agent.service` and `tspcam-web.service` are diagnostics/status only.

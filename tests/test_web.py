@@ -20,7 +20,9 @@ class WebTests(unittest.TestCase):
     def test_installer_release_permissions_and_symlink_name(self):
         script = (Path(__file__).resolve().parent.parent / "scripts/install-local.sh").read_text()
         self.assertIn('chmod 0755 "$DEST"', script)
-        self.assertIn('mv -Tf -- "$INSTALL_ROOT/.current.$" "$INSTALL_ROOT/current"', script)
+        self.assertIn('mv -Tf -- "$INSTALL_ROOT/.current.$$" "$INSTALL_ROOT/current"', script)
+        self.assertIn("chmod 0755 /etc/tspcam", script)
+        self.assertIn("chmod 0644 /etc/tspcam/config.toml", script)
 
 
 if __name__ == "__main__":

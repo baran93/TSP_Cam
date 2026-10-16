@@ -103,3 +103,5 @@ Proposed order; the owner assigns implementer and reviewer for each task.
 
 - Owner installed Phase 0 on a real Pi and found `/opt/tspcam/releases/pilot-be66a4e36d44` mode 0700, causing `tspcam status` and both systemd services to fail. Fixed installer to set final release directory mode 0755; also corrected a temporary-link filename typo, and added regression tests. Hardware re-test pending.
 - Owner explicitly requested **read-only LAN-accessible status dashboard without login for early testing**. The pilot web server now binds to `0.0.0.0:8765`, reachable via Pi LAN IP, not intended to be exposed to WAN. Production authentication remains planned. No recorder implemented.
+
+- Second real-pilot failure (2026-10-16): `tspcam status` returned permission denied for `/etc/tspcam/config.toml` when invoked as unprivileged `pi`. For owner-approved temporary **non-secret pilot config only**, installer now grants directory 0755 and config 0644, including repairing existing pilot installations. Corrected accidental JS-generated `.current.$` to `.current.$$` in the installer, with regression CI assertion.
