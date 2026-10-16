@@ -20,9 +20,13 @@ class DiagnosticTests(unittest.TestCase):
         with patch("tspcam.diagnostics.os.statvfs") as fake:
             fake.return_value.f_bavail = 100
             fake.return_value.f_frsize = 4096
+            fake.return_value.f_blocks = 1000
+            fake.return_value.f_bfree = 400
             result = mounted_volume(Path("/media/tspcam"), table)
         self.assertEqual(result["source"], "/dev/sda1")
         self.assertEqual(result["free_bytes"], 409600)
+        self.assertEqual(result["total_bytes"], 4096000)
+        self.assertEqual(result["used_percent"], 60.0)
 
     def test_no_fake_recorder_status(self):
         out = status(Config())
