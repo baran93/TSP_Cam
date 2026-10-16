@@ -20,6 +20,7 @@ class WebTests(unittest.TestCase):
         html = UI_PATH.read_text(encoding="utf-8")
         self.assertIn("/api/preview.jpg", html)
         self.assertIn("/api/settings", html)
+        self.assertIn("/api/storage/select", html)
         self.assertIn("/assets/tsp-logo.png", html)
         self.assertTrue(LOGO_PATH.read_bytes().startswith(b"\x89PNG"))
 

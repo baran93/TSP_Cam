@@ -10,6 +10,7 @@ from .config import Config
 from .diagnostics import status
 from .preview import PreviewManager
 from .settings import SettingsStore
+from .usb_storage import inspect_usb, save_selection
 
 UI_PATH = Path(__file__).with_name("panel.html")
 LOGO_PATH = Path(__file__).with_name("tsp-logo.png")
@@ -65,13 +66,16 @@ def make_handler(config: Config, preview: PreviewManager | None = None, settings
                            {"Content-Disposition": 'attachment; filename="tspcam-snapshot.jpg"'})
             elif route == "/api/settings":
                 self._json(200, settings.get())
+            elif route == "/api/storage":
+                self._json(200, inspect_usb(config.usb_mount))
             elif route == "/healthz":
                 self._json(200, {"service": "ok", "recorder": "not_implemented"})
             else:
                 self._json(404, {"error": "Not found"})
 
         def do_POST(self):
-            if urlsplit(self.path).path != "/api/settings":
+            route = urlsplit(self.path).path
+            if route not in ("/api/settings", "/api/storage/select"):
                 self._json(404, {"error": "Not found"})
                 return
             if self.headers.get("Content-Type", "").split(";")[0].strip().lower() != "application/json":
@@ -86,9 +90,23 @@ def make_handler(config: Config, preview: PreviewManager | None = None, settings
                 return
             try:
                 payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                if route == "/api/storage/select":
+                    if not isinstance(payload, dict) or set(payload) != {"volume_id"}:
+                        raise ValueError("Expected volume_id only")
+                    target_id = payload["volume_id"]
+                    disk_info = inspect_usb(config.usb_mount)
+                    choices = [v for v in disk_info["volumes"]
+                               if v["id"] == target_id and v["selectable"]]
+                    if len(choices) != 1:
+                        raise ValueError("Volume must be present, supported and have a unique stable ID")
+                    save_selection(target_id)
+                    self._json(200, {"selected_id": target_id,
+                                     "message": "Saved. Mount service will handle this volume on next check.",
+                                     "recording_active": False})
+                    return
                 prior = settings.get()
                 result = settings.update(payload)
-            except (ValueError, TypeError, OSError, UnicodeError) as exc:
+            except (ValueError, TypeError, OSError, UnicodeError, KeyError) as exc:
                 self._json(400, {"error": str(exc)[:160]})
                 return
             if prior["preview_resolution"] != result["preview_resolution"] or prior["preview_fps"] != result["preview_fps"]:
